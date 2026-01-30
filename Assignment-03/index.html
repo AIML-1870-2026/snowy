@@ -13,7 +13,7 @@
 
         body {
             overflow: hidden;
-            background: #ffffff;
+            background: #0a0a1a;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
@@ -25,18 +25,18 @@
             position: fixed;
             top: 20px;
             left: 20px;
-            background: #ffffff;
+            background: #0a0a1a;
             padding: 20px;
             border-radius: 12px;
-            border: 1px solid rgba(0, 0, 0, 0.2);
-            color: #333;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
             min-width: 250px;
         }
 
         .controls h2 {
             margin-bottom: 15px;
             font-size: 18px;
-            color: #333;
+            color: #a8c0ff;
         }
 
         .control-group {
@@ -47,7 +47,7 @@
             display: block;
             margin-bottom: 5px;
             font-size: 14px;
-            color: #555;
+            color: #ccc;
         }
 
         .control-group input[type="range"] {
@@ -58,7 +58,7 @@
         .control-group .value {
             text-align: right;
             font-size: 12px;
-            color: #666;
+            color: #888;
             margin-top: 3px;
         }
     </style>
@@ -218,7 +218,7 @@
             draw() {
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, settings.particleSize, 0, Math.PI * 2);
-                ctx.fillStyle = '#333';
+                ctx.fillStyle = '#fff';
                 ctx.fill();
             }
         }
@@ -260,7 +260,7 @@
                             ctx.lineTo(particles[j].x, particles[j].y);
                             ctx.lineTo(particles[k].x, particles[k].y);
                             ctx.closePath();
-                            ctx.fillStyle = '#333333';
+                            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
                             ctx.fill();
                         }
                     }
@@ -277,7 +277,7 @@
                         ctx.beginPath();
                         ctx.moveTo(particles[i].x, particles[i].y);
                         ctx.lineTo(particles[j].x, particles[j].y);
-                        ctx.strokeStyle = `rgba(50, 50, 100, ${opacity * 0.5})`;
+                        ctx.strokeStyle = `rgba(168, 192, 255, ${opacity * 0.5})`;
                         ctx.lineWidth = 1;
                         ctx.stroke();
                     }
@@ -287,7 +287,7 @@
 
         function animate() {
             ctx.clearRect(0, 0, width, height);
-            ctx.fillStyle = '#ffffff';
+            ctx.fillStyle = '#0a0a1a';
             ctx.fillRect(0, 0, width, height);
 
             drawConnections();

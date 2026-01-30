@@ -8,7 +8,7 @@ Create an interactive webpage featuring a "stellar web" - a dynamic, interconnec
 - [ ] Make it interactive with sliders
 
 ## Technical Details
-[Add technical implementation details here]
+- [ ] Utilize proximity-based connection rules
 
 ## Deliverables
 - `index.html` - Main entry point
