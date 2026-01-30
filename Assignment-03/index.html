@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stellar Web</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            overflow: hidden;
+            background: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        .controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            color: #333;
+            min-width: 250px;
+        }
+
+        .controls h2 {
+            margin-bottom: 15px;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .control-group .value {
+            text-align: right;
+            font-size: 12px;
+            color: #666;
+            margin-top: 3px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+
+    <div class="controls">
+        <h2>Stellar Web Controls</h2>
+
+        <div class="control-group">
+            <label>Particle Count</label>
+            <input type="range" id="particleCount" min="20" max="200" value="80">
+            <div class="value" id="particleCountValue">80</div>
+        </div>
+
+        <div class="control-group">
+            <label>Connection Distance</label>
+            <input type="range" id="connectionDistance" min="50" max="250" value="120">
+            <div class="value" id="connectionDistanceValue">120</div>
+        </div>
+
+        <div class="control-group">
+            <label>Particle Speed</label>
+            <input type="range" id="particleSpeed" min="1" max="10" value="3">
+            <div class="value" id="particleSpeedValue">3</div>
+        </div>
+
+        <div class="control-group">
+            <label>Particle Size</label>
+            <input type="range" id="particleSize" min="1" max="6" value="2">
+            <div class="value" id="particleSizeValue">2</div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+
+        // Settings
+        let settings = {
+            particleCount: 80,
+            connectionDistance: 120,
+            particleSpeed: 3,
+            particleSize: 2
+        };
+
+        // Mouse position
+        let mouse = {
+            x: null,
+            y: null,
+            radius: 150
+        };
+
+        // Get control panel bounds dynamically
+        const controlsElement = document.querySelector('.controls');
+        function getControlPanelBounds() {
+            const rect = controlsElement.getBoundingClientRect();
+            return {
+                x: rect.left - 10,
+                y: rect.top - 10,
+                width: rect.width + 20,
+                height: rect.height + 20
+            };
+        }
+
+        // Check if point is inside control panel
+        function isInControlPanel(x, y) {
+            const panel = getControlPanelBounds();
+            return x > panel.x &&
+                   x < panel.x + panel.width &&
+                   y > panel.y &&
+                   y < panel.y + panel.height;
+        }
+
+        // Particle class
+        class Particle {
+            constructor() {
+                // Keep generating position until outside control panel
+                do {
+                    this.x = Math.random() * width;
+                    this.y = Math.random() * height;
+                } while (isInControlPanel(this.x, this.y));
+
+                this.vx = (Math.random() - 0.5) * settings.particleSpeed;
+                this.vy = (Math.random() - 0.5) * settings.particleSpeed;
+                this.size = settings.particleSize;
+            }
+
+            update() {
+                // Mouse interaction
+                if (mouse.x !== null && mouse.y !== null) {
+                    const dx = mouse.x - this.x;
+                    const dy = mouse.y - this.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < mouse.radius) {
+                        const force = (mouse.radius - dist) / mouse.radius;
+                        this.vx -= (dx / dist) * force * 0.5;
+                        this.vy -= (dy / dist) * force * 0.5;
+                    }
+                }
+
+                // Apply velocity
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Damping
+                this.vx *= 0.99;
+                this.vy *= 0.99;
+
+                // Keep minimum speed
+                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                const minSpeed = settings.particleSpeed * 0.1;
+                if (speed < minSpeed) {
+                    this.vx += (Math.random() - 0.5) * 0.1;
+                    this.vy += (Math.random() - 0.5) * 0.1;
+                }
+
+                // Boundary wrapping
+                if (this.x < 0) this.x = width;
+                if (this.x > width) this.x = 0;
+                if (this.y < 0) this.y = height;
+                if (this.y > height) this.y = 0;
+
+                // Bounce off control panel
+                const panel = getControlPanelBounds();
+                if (this.x > panel.x && this.x < panel.x + panel.width &&
+                    this.y > panel.y && this.y < panel.y + panel.height) {
+                    // Determine which edge to bounce from
+                    const fromLeft = this.x - panel.x;
+                    const fromRight = (panel.x + panel.width) - this.x;
+                    const fromTop = this.y - panel.y;
+                    const fromBottom = (panel.y + panel.height) - this.y;
+
+                    const minDist = Math.min(fromLeft, fromRight, fromTop, fromBottom);
+
+                    if (minDist === fromLeft) {
+                        this.x = panel.x - 1;
+                        this.vx = -Math.abs(this.vx);
+                    } else if (minDist === fromRight) {
+                        this.x = panel.x + panel.width + 1;
+                        this.vx = Math.abs(this.vx);
+                    } else if (minDist === fromTop) {
+                        this.y = panel.y - 1;
+                        this.vy = -Math.abs(this.vy);
+                    } else {
+                        this.y = panel.y + panel.height + 1;
+                        this.vy = Math.abs(this.vy);
+                    }
+                }
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, settings.particleSize, 0, Math.PI * 2);
+                ctx.fillStyle = '#333';
+                ctx.fill();
+            }
+        }
+
+        let particles = [];
+
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < settings.particleCount; i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        // Calculate distance between two particles
+        function getDistance(p1, p2) {
+            const dx = p1.x - p2.x;
+            const dy = p1.y - p2.y;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        function drawConnections() {
+            const maxDist = settings.connectionDistance;
+
+            // First pass: find and draw filled triangles
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const distIJ = getDistance(particles[i], particles[j]);
+                    if (distIJ >= maxDist) continue;
+
+                    for (let k = j + 1; k < particles.length; k++) {
+                        const distIK = getDistance(particles[i], particles[k]);
+                        const distJK = getDistance(particles[j], particles[k]);
+
+                        // All three particles must be connected
+                        if (distIK < maxDist && distJK < maxDist) {
+                            // Draw filled triangle
+                            ctx.beginPath();
+                            ctx.moveTo(particles[i].x, particles[i].y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.lineTo(particles[k].x, particles[k].y);
+                            ctx.closePath();
+                            ctx.fillStyle = '#333333';
+                            ctx.fill();
+                        }
+                    }
+                }
+            }
+
+            // Second pass: draw connecting lines on top
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dist = getDistance(particles[i], particles[j]);
+
+                    if (dist < maxDist) {
+                        const opacity = 1 - (dist / maxDist);
+                        ctx.beginPath();
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.strokeStyle = `rgba(50, 50, 100, ${opacity * 0.5})`;
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, width, height);
+
+            drawConnections();
+
+            particles.forEach(particle => {
+                particle.update();
+                particle.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        // Event listeners
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            mouse.x = null;
+            mouse.y = null;
+        });
+
+        // Slider controls
+        document.getElementById('particleCount').addEventListener('input', (e) => {
+            settings.particleCount = parseInt(e.target.value);
+            document.getElementById('particleCountValue').textContent = e.target.value;
+            initParticles();
+        });
+
+        document.getElementById('connectionDistance').addEventListener('input', (e) => {
+            settings.connectionDistance = parseInt(e.target.value);
+            document.getElementById('connectionDistanceValue').textContent = e.target.value;
+        });
+
+        document.getElementById('particleSpeed').addEventListener('input', (e) => {
+            settings.particleSpeed = parseInt(e.target.value);
+            document.getElementById('particleSpeedValue').textContent = e.target.value;
+        });
+
+        document.getElementById('particleSize').addEventListener('input', (e) => {
+            settings.particleSize = parseInt(e.target.value);
+            document.getElementById('particleSizeValue').textContent = e.target.value;
+        });
+
+        // Initialize
+        initParticles();
+        animate();
+    </script>
+</body>
+</html>
