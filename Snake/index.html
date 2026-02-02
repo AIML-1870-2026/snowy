@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background:
+                /* Layered jungle leaves and vines */
+                radial-gradient(ellipse 80px 60px at 10% 20%, rgba(34, 85, 34, 0.5) 0%, transparent 70%),
+                radial-gradient(ellipse 100px 80px at 90% 15%, rgba(22, 66, 22, 0.6) 0%, transparent 70%),
+                radial-gradient(ellipse 70px 50px at 85% 80%, rgba(34, 85, 34, 0.5) 0%, transparent 70%),
+                radial-gradient(ellipse 90px 70px at 5% 85%, rgba(22, 66, 22, 0.6) 0%, transparent 70%),
+                radial-gradient(ellipse 60px 40px at 50% 5%, rgba(46, 100, 46, 0.4) 0%, transparent 70%),
+                radial-gradient(ellipse 80px 60px at 40% 90%, rgba(34, 85, 34, 0.5) 0%, transparent 70%),
+                radial-gradient(ellipse 50px 35px at 95% 50%, rgba(22, 66, 22, 0.5) 0%, transparent 70%),
+                radial-gradient(ellipse 55px 40px at 3% 50%, rgba(34, 85, 34, 0.5) 0%, transparent 70%),
+                /* Vine-like vertical lines */
+                repeating-linear-gradient(90deg, transparent 0px, transparent 80px, rgba(22, 66, 22, 0.15) 80px, rgba(22, 66, 22, 0.15) 82px),
+                repeating-linear-gradient(90deg, transparent 0px, transparent 120px, rgba(34, 85, 34, 0.1) 120px, rgba(34, 85, 34, 0.1) 123px),
+                /* Base jungle gradient */
+                linear-gradient(180deg, #0d260d 0%, #143314 30%, #1a401a 60%, #0f2b0f 100%);
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 500px;
+            padding: 0 10px;
+        }
+
+        .score-display, .high-score-display, .level-display {
+            color: #fff;
+            font-size: 18px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
+        .score-display span, .high-score-display span, .level-display span {
+            color: #7dce82;
+            font-weight: bold;
+        }
+
+        .game-wrapper {
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 3px solid rgba(46, 100, 46, 0.4);
+        }
+
+        #gameCanvas {
+            display: block;
+            background: linear-gradient(180deg, #1a3d1a 0%, #0f2b0f 100%);
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.85);
+            color: #fff;
+            text-align: center;
+            transition: opacity 0.3s ease;
+        }
+
+        .overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .overlay h1 {
+            font-size: 48px;
+            margin-bottom: 10px;
+            color: #7dce82;
+            text-shadow: 0 0 20px rgba(125, 206, 130, 0.5);
+        }
+
+        .overlay h2 {
+            font-size: 36px;
+            margin-bottom: 20px;
+            color: #e94560;
+            text-shadow: 0 0 20px rgba(233, 69, 96, 0.5);
+        }
+
+        .overlay p {
+            font-size: 18px;
+            margin: 10px 0;
+            color: #ccc;
+        }
+
+        .overlay .final-score {
+            font-size: 24px;
+            color: #7dce82;
+            margin: 20px 0;
+        }
+
+        .overlay .new-high-score {
+            font-size: 20px;
+            color: #ffd700;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.05); }
+        }
+
+        .overlay .prompt {
+            margin-top: 30px;
+            font-size: 16px;
+            color: #888;
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .controls-hint {
+            color: #666;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .controls-hint span {
+            color: #7dce82;
+        }
+
+        /* Screen shake animation */
+        .shake {
+            animation: shake 0.3s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-5px); }
+            40% { transform: translateX(5px); }
+            60% { transform: translateX(-5px); }
+            80% { transform: translateX(5px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <div class="score-display">Score: <span id="score">0</span></div>
+            <div class="level-display">Level: <span id="level">1</span></div>
+            <div class="high-score-display">Best: <span id="highScore">0</span></div>
+        </div>
+
+        <div class="game-wrapper" id="gameWrapper">
+            <canvas id="gameCanvas" width="500" height="500"></canvas>
+
+            <!-- Start Screen -->
+            <div class="overlay" id="startScreen">
+                <h1>SNAKE</h1>
+                <p>Hunt the mice. Avoid the obstacles.</p>
+                <p class="prompt">Press SPACE to Start</p>
+                <p class="controls-hint">
+                    <span>Arrow Keys</span> or <span>WASD</span> to move | <span>P</span> to pause
+                </p>
+            </div>
+
+            <!-- Pause Screen -->
+            <div class="overlay hidden" id="pauseScreen">
+                <h2>PAUSED</h2>
+                <p class="prompt">Press SPACE or P to Resume</p>
+            </div>
+
+            <!-- Game Over Screen -->
+            <div class="overlay hidden" id="gameOverScreen">
+                <h2>GAME OVER</h2>
+                <p class="final-score">Score: <span id="finalScore">0</span></p>
+                <p class="new-high-score hidden" id="newHighScore">NEW HIGH SCORE!</p>
+                <p class="prompt">Press SPACE to Restart</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game Configuration
+        const CONFIG = {
+            gridSize: 25,
+            cellSize: 20,
+            initialSpeed: 150,
+            speedIncrement: 15,
+            pointsPerMouse: 10,
+            levels: [
+                { threshold: 0, speed: 150, obstacles: 0 },
+                { threshold: 50, speed: 130, obstacles: 3 },
+                { threshold: 100, speed: 115, obstacles: 5 },
+                { threshold: 200, speed: 100, obstacles: 7 },
+                { threshold: 300, speed: 85, obstacles: 10 }
+            ]
+        };
+
+        // Game State
+        const game = {
+            state: 'start', // start, playing, paused, gameOver
+            score: 0,
+            highScore: parseInt(localStorage.getItem('snakeGameHighScore')) || 0,
+            level: 1,
+            snake: [],
+            direction: { x: 1, y: 0 },
+            nextDirection: { x: 1, y: 0 },
+            mouse: null,
+            obstacles: [],
+            particles: [],
+            lastUpdate: 0,
+            gameSpeed: CONFIG.initialSpeed
+        };
+
+        // Canvas Setup
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const gameWrapper = document.getElementById('gameWrapper');
+
+        // UI Elements
+        const scoreDisplay = document.getElementById('score');
+        const highScoreDisplay = document.getElementById('highScore');
+        const levelDisplay = document.getElementById('level');
+        const startScreen = document.getElementById('startScreen');
+        const pauseScreen = document.getElementById('pauseScreen');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const finalScoreDisplay = document.getElementById('finalScore');
+        const newHighScoreText = document.getElementById('newHighScore');
+
+        // Initialize high score display
+        highScoreDisplay.textContent = game.highScore;
+
+        // Particle class for visual effects
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.size = Math.random() * 4 + 2;
+                this.speedX = (Math.random() - 0.5) * 6;
+                this.speedY = (Math.random() - 0.5) * 6;
+                this.life = 1;
+                this.decay = Math.random() * 0.02 + 0.02;
+            }
+
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.life -= this.decay;
+                this.size *= 0.96;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.life;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // Create particles at position
+        function createParticles(x, y, color, count = 10) {
+            for (let i = 0; i < count; i++) {
+                game.particles.push(new Particle(x, y, color));
+            }
+        }
+
+        // Initialize/Reset Game
+        function initGame() {
+            const centerX = Math.floor(CONFIG.gridSize / 2);
+            const centerY = Math.floor(CONFIG.gridSize / 2);
+
+            game.snake = [
+                { x: centerX, y: centerY },
+                { x: centerX - 1, y: centerY },
+                { x: centerX - 2, y: centerY }
+            ];
+
+            game.direction = { x: 1, y: 0 };
+            game.nextDirection = { x: 1, y: 0 };
+            game.score = 0;
+            game.level = 1;
+            game.gameSpeed = CONFIG.initialSpeed;
+            game.obstacles = [];
+            game.particles = [];
+
+            updateUI();
+            spawnMouse();
+        }
+
+        // Spawn mouse in random empty cell
+        function spawnMouse() {
+            const emptyCells = [];
+
+            for (let x = 0; x < CONFIG.gridSize; x++) {
+                for (let y = 0; y < CONFIG.gridSize; y++) {
+                    const isSnake = game.snake.some(seg => seg.x === x && seg.y === y);
+                    const isObstacle = game.obstacles.some(obs => obs.x === x && obs.y === y);
+
+                    if (!isSnake && !isObstacle) {
+                        emptyCells.push({ x, y });
+                    }
+                }
+            }
+
+            if (emptyCells.length > 0) {
+                game.mouse = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+                game.mouse.wiggleOffset = 0;
+            }
+        }
+
+        // Spawn obstacles based on current level
+        function updateObstacles() {
+            const currentLevelConfig = CONFIG.levels[game.level - 1] || CONFIG.levels[CONFIG.levels.length - 1];
+            const targetObstacles = currentLevelConfig.obstacles;
+
+            while (game.obstacles.length < targetObstacles) {
+                let attempts = 0;
+                let placed = false;
+
+                while (!placed && attempts < 100) {
+                    const x = Math.floor(Math.random() * CONFIG.gridSize);
+                    const y = Math.floor(Math.random() * CONFIG.gridSize);
+
+                    // Check if position is valid (not on snake, mouse, or other obstacles)
+                    const isSnake = game.snake.some(seg =>
+                        Math.abs(seg.x - x) < 3 && Math.abs(seg.y - y) < 3
+                    );
+                    const isMouse = game.mouse && game.mouse.x === x && game.mouse.y === y;
+                    const isObstacle = game.obstacles.some(obs => obs.x === x && obs.y === y);
+
+                    if (!isSnake && !isMouse && !isObstacle) {
+                        game.obstacles.push({ x, y });
+                        placed = true;
+                    }
+                    attempts++;
+                }
+            }
+        }
+
+        // Update game level based on score
+        function updateLevel() {
+            let newLevel = 1;
+            for (let i = CONFIG.levels.length - 1; i >= 0; i--) {
+                if (game.score >= CONFIG.levels[i].threshold) {
+                    newLevel = i + 1;
+                    break;
+                }
+            }
+
+            if (newLevel !== game.level) {
+                game.level = newLevel;
+                const levelConfig = CONFIG.levels[newLevel - 1];
+                game.gameSpeed = levelConfig.speed;
+                updateObstacles();
+            }
+        }
+
+        // Update UI displays
+        function updateUI() {
+            scoreDisplay.textContent = game.score;
+            levelDisplay.textContent = game.level;
+            highScoreDisplay.textContent = game.highScore;
+        }
+
+        // Handle keyboard input
+        document.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+
+            // Prevent default for game keys
+            if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd', ' ', 'p'].includes(key)) {
+                e.preventDefault();
+            }
+
+            // Start/Restart/Resume
+            if (key === ' ') {
+                if (game.state === 'start' || game.state === 'gameOver') {
+                    startGame();
+                } else if (game.state === 'paused') {
+                    resumeGame();
+                }
+                return;
+            }
+
+            // Pause
+            if (key === 'p' && (game.state === 'playing' || game.state === 'paused')) {
+                if (game.state === 'playing') {
+                    pauseGame();
+                } else {
+                    resumeGame();
+                }
+                return;
+            }
+
+            // Direction controls (only when playing)
+            if (game.state !== 'playing') return;
+
+            switch (key) {
+                case 'arrowup':
+                case 'w':
+                    if (game.direction.y !== 1) {
+                        game.nextDirection = { x: 0, y: -1 };
+                    }
+                    break;
+                case 'arrowdown':
+                case 's':
+                    if (game.direction.y !== -1) {
+                        game.nextDirection = { x: 0, y: 1 };
+                    }
+                    break;
+                case 'arrowleft':
+                case 'a':
+                    if (game.direction.x !== 1) {
+                        game.nextDirection = { x: -1, y: 0 };
+                    }
+                    break;
+                case 'arrowright':
+                case 'd':
+                    if (game.direction.x !== -1) {
+                        game.nextDirection = { x: 1, y: 0 };
+                    }
+                    break;
+            }
+        });
+
+        // Game state functions
+        function startGame() {
+            initGame();
+            game.state = 'playing';
+            startScreen.classList.add('hidden');
+            gameOverScreen.classList.add('hidden');
+            game.lastUpdate = performance.now();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function pauseGame() {
+            game.state = 'paused';
+            pauseScreen.classList.remove('hidden');
+        }
+
+        function resumeGame() {
+            game.state = 'playing';
+            pauseScreen.classList.add('hidden');
+            game.lastUpdate = performance.now();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function endGame() {
+            game.state = 'gameOver';
+
+            // Screen shake effect
+            gameWrapper.classList.add('shake');
+            setTimeout(() => gameWrapper.classList.remove('shake'), 300);
+
+            // Update high score
+            const isNewHighScore = game.score > game.highScore;
+            if (isNewHighScore) {
+                game.highScore = game.score;
+                localStorage.setItem('snakeGameHighScore', game.highScore);
+                highScoreDisplay.textContent = game.highScore;
+            }
+
+            // Show game over screen
+            finalScoreDisplay.textContent = game.score;
+            newHighScoreText.classList.toggle('hidden', !isNewHighScore);
+            gameOverScreen.classList.remove('hidden');
+        }
+
+        // Main game loop
+        function gameLoop(currentTime) {
+            if (game.state !== 'playing') return;
+
+            const deltaTime = currentTime - game.lastUpdate;
+
+            // Update game at fixed interval
+            if (deltaTime >= game.gameSpeed) {
+                game.lastUpdate = currentTime;
+                update();
+            }
+
+            // Always render (smooth animations)
+            render();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Game update logic
+        function update() {
+            // Apply queued direction change
+            game.direction = { ...game.nextDirection };
+
+            // Calculate new head position
+            const head = game.snake[0];
+            const newHead = {
+                x: head.x + game.direction.x,
+                y: head.y + game.direction.y
+            };
+
+            // Check wall collision
+            if (newHead.x < 0 || newHead.x >= CONFIG.gridSize ||
+                newHead.y < 0 || newHead.y >= CONFIG.gridSize) {
+                endGame();
+                return;
+            }
+
+            // Check self collision
+            if (game.snake.some(seg => seg.x === newHead.x && seg.y === newHead.y)) {
+                endGame();
+                return;
+            }
+
+            // Check obstacle collision
+            if (game.obstacles.some(obs => obs.x === newHead.x && obs.y === newHead.y)) {
+                endGame();
+                return;
+            }
+
+            // Move snake
+            game.snake.unshift(newHead);
+
+            // Check mouse collision
+            if (game.mouse && newHead.x === game.mouse.x && newHead.y === game.mouse.y) {
+                // Eat mouse - don't remove tail
+                game.score += CONFIG.pointsPerMouse;
+
+                // Create particles at mouse position
+                const pixelX = game.mouse.x * CONFIG.cellSize + CONFIG.cellSize / 2;
+                const pixelY = game.mouse.y * CONFIG.cellSize + CONFIG.cellSize / 2;
+                createParticles(pixelX, pixelY, '#ff6b9d', 15);
+
+                updateLevel();
+                updateUI();
+                spawnMouse();
+            } else {
+                // Remove tail
+                game.snake.pop();
+            }
+
+            // Update mouse wiggle animation
+            if (game.mouse) {
+                game.mouse.wiggleOffset = (game.mouse.wiggleOffset || 0) + 0.3;
+            }
+        }
+
+        // Render game
+        function render() {
+            // Clear canvas with jungle floor gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#1a3d1a');
+            gradient.addColorStop(0.5, '#153015');
+            gradient.addColorStop(1, '#0f2b0f');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grid
+            drawGrid();
+
+            // Draw obstacles
+            drawObstacles();
+
+            // Draw mouse
+            drawMouse();
+
+            // Draw snake
+            drawSnake();
+
+            // Draw and update particles
+            updateAndDrawParticles();
+        }
+
+        // Draw subtle jungle floor grid
+        function drawGrid() {
+            ctx.strokeStyle = 'rgba(100, 140, 100, 0.08)';
+            ctx.lineWidth = 1;
+
+            for (let i = 0; i <= CONFIG.gridSize; i++) {
+                const pos = i * CONFIG.cellSize;
+
+                ctx.beginPath();
+                ctx.moveTo(pos, 0);
+                ctx.lineTo(pos, canvas.height);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(0, pos);
+                ctx.lineTo(canvas.width, pos);
+                ctx.stroke();
+            }
+
+            // Add some random leaf/debris spots for jungle floor texture
+            ctx.fillStyle = 'rgba(80, 120, 80, 0.1)';
+            for (let i = 0; i < 15; i++) {
+                const leafX = (i * 37) % canvas.width;
+                const leafY = (i * 53) % canvas.height;
+                ctx.beginPath();
+                ctx.ellipse(leafX, leafY, 8, 4, (i * 0.5), 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // Draw obstacles as mossy jungle rocks
+        function drawObstacles() {
+            game.obstacles.forEach(obs => {
+                const x = obs.x * CONFIG.cellSize;
+                const y = obs.y * CONFIG.cellSize;
+                const size = CONFIG.cellSize;
+                const padding = 2;
+
+                // Rock base - dark gray/brown
+                ctx.fillStyle = '#3d3d35';
+                ctx.beginPath();
+                ctx.roundRect(x + padding, y + padding, size - padding * 2, size - padding * 2, 5);
+                ctx.fill();
+
+                // Rock texture - darker spots
+                ctx.fillStyle = '#2a2a25';
+                ctx.beginPath();
+                ctx.arc(x + size/3, y + size/2, 3, 0, Math.PI * 2);
+                ctx.arc(x + size*2/3, y + size/3, 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Moss on top
+                ctx.fillStyle = '#4a6b3a';
+                ctx.beginPath();
+                ctx.ellipse(x + size/2, y + padding + 4, size/3, 3, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Moss highlight
+                ctx.fillStyle = '#5a7b4a';
+                ctx.beginPath();
+                ctx.ellipse(x + size/2 - 2, y + padding + 3, size/5, 2, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Rock highlight
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+                ctx.beginPath();
+                ctx.roundRect(x + padding + 3, y + padding + 6, size - padding * 2 - 8, (size - padding * 2) / 4, 2);
+                ctx.fill();
+            });
+        }
+
+        // Draw mouse with wiggle animation
+        function drawMouse() {
+            if (!game.mouse) return;
+
+            const x = game.mouse.x * CONFIG.cellSize + CONFIG.cellSize / 2;
+            const y = game.mouse.y * CONFIG.cellSize + CONFIG.cellSize / 2;
+            const wiggle = Math.sin(game.mouse.wiggleOffset) * 1.5;
+
+            // Mouse body
+            ctx.fillStyle = '#888';
+            ctx.beginPath();
+            ctx.ellipse(x + wiggle, y, 7, 5, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Mouse head
+            ctx.fillStyle = '#999';
+            ctx.beginPath();
+            ctx.ellipse(x + 6 + wiggle, y, 4, 3.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Ears
+            ctx.fillStyle = '#ff9999';
+            ctx.beginPath();
+            ctx.arc(x + 4 + wiggle, y - 4, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(x + 8 + wiggle, y - 3, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Eye
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(x + 8 + wiggle, y - 0.5, 1, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Tail
+            ctx.strokeStyle = '#ff9999';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(x - 7 + wiggle, y);
+            ctx.quadraticCurveTo(x - 12 + wiggle, y - 4 - wiggle, x - 14 + wiggle, y + 2);
+            ctx.stroke();
+        }
+
+        // Draw snake with scales and tongue
+        function drawSnake() {
+            const snakeLength = game.snake.length;
+            const time = performance.now();
+
+            game.snake.forEach((segment, index) => {
+                const x = segment.x * CONFIG.cellSize;
+                const y = segment.y * CONFIG.cellSize;
+                const size = CONFIG.cellSize;
+                const padding = 1;
+
+                // Color gradient from head to tail (green snake colors)
+                const progress = index / snakeLength;
+                const r = Math.floor(45 - progress * 15);
+                const g = Math.floor(140 - progress * 40);
+                const b = Math.floor(45 - progress * 20);
+
+                const baseColor = `rgb(${r}, ${g}, ${b})`;
+                const darkColor = `rgb(${Math.floor(r * 0.7)}, ${Math.floor(g * 0.7)}, ${Math.floor(b * 0.7)})`;
+                const lightColor = `rgb(${Math.min(255, r + 30)}, ${Math.min(255, g + 40)}, ${Math.min(255, b + 30)})`;
+
+                if (index === 0) {
+                    // Head - rounded rectangle
+                    ctx.fillStyle = baseColor;
+                    ctx.beginPath();
+                    ctx.roundRect(x + padding, y + padding, size - padding * 2, size - padding * 2, 6);
+                    ctx.fill();
+
+                    // Head scales pattern
+                    ctx.fillStyle = darkColor;
+                    ctx.beginPath();
+                    ctx.arc(x + size/2 - 3, y + size/2, 2, 0, Math.PI * 2);
+                    ctx.arc(x + size/2 + 3, y + size/2, 2, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Tongue - flickering forked tongue
+                    const tongueFlicker = Math.sin(time * 0.015) > 0.3;
+                    if (tongueFlicker) {
+                        const tongueLength = 8 + Math.sin(time * 0.02) * 3;
+                        const forkSize = 4;
+                        ctx.strokeStyle = '#cc3355';
+                        ctx.lineWidth = 2;
+                        ctx.lineCap = 'round';
+
+                        let tongueStartX, tongueStartY, tongueEndX, tongueEndY;
+                        let fork1X, fork1Y, fork2X, fork2Y;
+
+                        if (game.direction.x === 1) { // Right
+                            tongueStartX = x + size;
+                            tongueStartY = y + size / 2;
+                            tongueEndX = tongueStartX + tongueLength;
+                            tongueEndY = tongueStartY;
+                            fork1X = tongueEndX + forkSize; fork1Y = tongueEndY - forkSize/2;
+                            fork2X = tongueEndX + forkSize; fork2Y = tongueEndY + forkSize/2;
+                        } else if (game.direction.x === -1) { // Left
+                            tongueStartX = x;
+                            tongueStartY = y + size / 2;
+                            tongueEndX = tongueStartX - tongueLength;
+                            tongueEndY = tongueStartY;
+                            fork1X = tongueEndX - forkSize; fork1Y = tongueEndY - forkSize/2;
+                            fork2X = tongueEndX - forkSize; fork2Y = tongueEndY + forkSize/2;
+                        } else if (game.direction.y === -1) { // Up
+                            tongueStartX = x + size / 2;
+                            tongueStartY = y;
+                            tongueEndX = tongueStartX;
+                            tongueEndY = tongueStartY - tongueLength;
+                            fork1X = tongueEndX - forkSize/2; fork1Y = tongueEndY - forkSize;
+                            fork2X = tongueEndX + forkSize/2; fork2Y = tongueEndY - forkSize;
+                        } else { // Down
+                            tongueStartX = x + size / 2;
+                            tongueStartY = y + size;
+                            tongueEndX = tongueStartX;
+                            tongueEndY = tongueStartY + tongueLength;
+                            fork1X = tongueEndX - forkSize/2; fork1Y = tongueEndY + forkSize;
+                            fork2X = tongueEndX + forkSize/2; fork2Y = tongueEndY + forkSize;
+                        }
+
+                        // Main tongue
+                        ctx.beginPath();
+                        ctx.moveTo(tongueStartX, tongueStartY);
+                        ctx.lineTo(tongueEndX, tongueEndY);
+                        ctx.stroke();
+
+                        // Forked ends
+                        ctx.lineWidth = 1.5;
+                        ctx.beginPath();
+                        ctx.moveTo(tongueEndX, tongueEndY);
+                        ctx.lineTo(fork1X, fork1Y);
+                        ctx.moveTo(tongueEndX, tongueEndY);
+                        ctx.lineTo(fork2X, fork2Y);
+                        ctx.stroke();
+                    }
+
+                    // Eyes based on direction (yellow snake eyes with slit pupils)
+                    const eyeSize = 4;
+                    const pupilWidth = 1.5;
+                    const eyeOffset = 5;
+                    let eye1X, eye1Y, eye2X, eye2Y;
+
+                    if (game.direction.x === 1) { // Right
+                        eye1X = x + size - eyeOffset; eye1Y = y + eyeOffset;
+                        eye2X = x + size - eyeOffset; eye2Y = y + size - eyeOffset;
+                    } else if (game.direction.x === -1) { // Left
+                        eye1X = x + eyeOffset; eye1Y = y + eyeOffset;
+                        eye2X = x + eyeOffset; eye2Y = y + size - eyeOffset;
+                    } else if (game.direction.y === -1) { // Up
+                        eye1X = x + eyeOffset; eye1Y = y + eyeOffset;
+                        eye2X = x + size - eyeOffset; eye2Y = y + eyeOffset;
+                    } else { // Down
+                        eye1X = x + eyeOffset; eye1Y = y + size - eyeOffset;
+                        eye2X = x + size - eyeOffset; eye2Y = y + size - eyeOffset;
+                    }
+
+                    // Yellow eye whites
+                    ctx.fillStyle = '#ffdd44';
+                    ctx.beginPath();
+                    ctx.arc(eye1X, eye1Y, eyeSize, 0, Math.PI * 2);
+                    ctx.arc(eye2X, eye2Y, eyeSize, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Vertical slit pupils
+                    ctx.fillStyle = '#111';
+                    ctx.beginPath();
+                    ctx.ellipse(eye1X, eye1Y, pupilWidth, eyeSize - 1, 0, 0, Math.PI * 2);
+                    ctx.ellipse(eye2X, eye2Y, pupilWidth, eyeSize - 1, 0, 0, Math.PI * 2);
+                    ctx.fill();
+
+                } else if (index === snakeLength - 1) {
+                    // Tail - pointed with scale texture
+                    const prevSeg = game.snake[index - 1];
+                    const dx = prevSeg.x - segment.x;
+                    const dy = prevSeg.y - segment.y;
+
+                    ctx.fillStyle = baseColor;
+                    ctx.beginPath();
+                    if (dx === 1) { // Pointing left
+                        ctx.moveTo(x + size, y + padding);
+                        ctx.lineTo(x + size, y + size - padding);
+                        ctx.lineTo(x + padding, y + size / 2);
+                    } else if (dx === -1) { // Pointing right
+                        ctx.moveTo(x, y + padding);
+                        ctx.lineTo(x, y + size - padding);
+                        ctx.lineTo(x + size - padding, y + size / 2);
+                    } else if (dy === 1) { // Pointing up
+                        ctx.moveTo(x + padding, y + size);
+                        ctx.lineTo(x + size - padding, y + size);
+                        ctx.lineTo(x + size / 2, y + padding);
+                    } else { // Pointing down
+                        ctx.moveTo(x + padding, y);
+                        ctx.lineTo(x + size - padding, y);
+                        ctx.lineTo(x + size / 2, y + size - padding);
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // Tail scale
+                    ctx.fillStyle = darkColor;
+                    ctx.beginPath();
+                    ctx.arc(x + size/2, y + size/2, 2, 0, Math.PI * 2);
+                    ctx.fill();
+
+                } else {
+                    // Body segment with scales
+                    ctx.fillStyle = baseColor;
+                    ctx.beginPath();
+                    ctx.roundRect(x + padding, y + padding, size - padding * 2, size - padding * 2, 4);
+                    ctx.fill();
+
+                    // Scale pattern - overlapping arc pattern
+                    const scaleRows = 2;
+                    const scaleCols = 2;
+                    const scaleWidth = (size - padding * 2) / scaleCols;
+                    const scaleHeight = (size - padding * 2) / scaleRows;
+
+                    for (let row = 0; row < scaleRows; row++) {
+                        for (let col = 0; col < scaleCols; col++) {
+                            const scaleX = x + padding + col * scaleWidth + scaleWidth / 2;
+                            const scaleY = y + padding + row * scaleHeight + scaleHeight / 2;
+
+                            // Dark scale outline
+                            ctx.strokeStyle = darkColor;
+                            ctx.lineWidth = 1;
+                            ctx.beginPath();
+                            ctx.arc(scaleX, scaleY + 2, scaleWidth / 2.5, Math.PI * 1.2, Math.PI * 1.8);
+                            ctx.stroke();
+
+                            // Light highlight on scale
+                            ctx.strokeStyle = lightColor;
+                            ctx.lineWidth = 0.5;
+                            ctx.beginPath();
+                            ctx.arc(scaleX, scaleY, scaleWidth / 3, Math.PI * 1.3, Math.PI * 1.7);
+                            ctx.stroke();
+                        }
+                    }
+
+                    // Center belly line hint
+                    ctx.strokeStyle = lightColor;
+                    ctx.lineWidth = 1;
+                    ctx.globalAlpha = 0.3;
+                    ctx.beginPath();
+                    ctx.moveTo(x + size/2, y + padding);
+                    ctx.lineTo(x + size/2, y + size - padding);
+                    ctx.stroke();
+                    ctx.globalAlpha = 1;
+                }
+            });
+        }
+
+        // Update and draw particles
+        function updateAndDrawParticles() {
+            for (let i = game.particles.length - 1; i >= 0; i--) {
+                const particle = game.particles[i];
+                particle.update();
+
+                if (particle.life <= 0) {
+                    game.particles.splice(i, 1);
+                } else {
+                    particle.draw();
+                }
+            }
+        }
+
+        // Initial render
+        render();
+    </script>
+</body>
+</html>
