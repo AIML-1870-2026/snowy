@@ -5,7 +5,11 @@
       "Bash(git push:*)",
       "Bash(gh repo view:*)",
       "Bash(open:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(test:*)"
+    ],
+    "additionalDirectories": [
+      "/Users/melissabarrera-mendoza/Documents/snowy"
     ]
   }
 }
