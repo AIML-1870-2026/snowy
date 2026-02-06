@@ -161,6 +161,72 @@
             z-index: 100;
         }
 
+        .popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #1a1a24;
+            padding: 30px 40px;
+            border-radius: 16px;
+            color: #e0e0e0;
+            text-align: center;
+            z-index: 200;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.8);
+            display: none;
+            animation: popIn 0.3s ease-out;
+        }
+
+        @keyframes popIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        .popup h3 {
+            color: #7ecfff;
+            font-size: 22px;
+            margin-bottom: 15px;
+        }
+
+        .popup p {
+            font-size: 14px;
+            color: #aaa;
+            margin-bottom: 20px;
+        }
+
+        .popup button {
+            padding: 10px 30px;
+            border: none;
+            border-radius: 8px;
+            background: #7ecfff;
+            color: #0a0a0f;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .popup button:hover {
+            opacity: 0.85;
+        }
+
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 199;
+            display: none;
+        }
+
         @media (max-width: 600px) {
             .controls {
                 top: 60px;
@@ -199,9 +265,13 @@
             <span class="stats-label">f / k</span>
             <span class="stats-value" id="statsFK">0 / 0</span>
         </div>
+        <div class="stats-row">
+            <span class="stats-label">Mice</span>
+            <span class="stats-value" id="statsMice">0</span>
+        </div>
     </div>
 
-    <div class="hint">Click or drag to add particles</div>
+    <div class="hint" id="hint">Click or drag to add particles</div>
 
     <button class="toggle-btn" onclick="toggleControls()">Controls</button>
 
@@ -243,6 +313,13 @@
         </div>
     </div>
 
+    <div class="popup-overlay" id="popupOverlay"></div>
+    <div class="popup" id="popup">
+        <h3>Maze Complete!</h3>
+        <p>Click anywhere on the maze to release mice.<br>Watch them navigate through the paths!</p>
+        <button onclick="closePopup()">Got it!</button>
+    </div>
+
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -259,6 +336,15 @@
         let frameCount = 0;
         let fps = 0;
 
+        // Maze completion tracking
+        let mazeComplete = false;
+        let stabilityCounter = 0;
+        let lastTotalChange = Infinity;
+        let popupShown = false;
+
+        // Mice array
+        const mice = [];
+
         // Settings (defaults to maze pattern)
         const settings = {
             feed: 0.029,
@@ -269,6 +355,147 @@
             scale: 2,
             brush: 15
         };
+
+        // Mouse class for maze navigation
+        class Mouse {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.gridX = Math.floor(x / settings.scale);
+                this.gridY = Math.floor(y / settings.scale);
+                this.speed = 1.5 + Math.random() * 0.5;
+                this.direction = Math.random() * Math.PI * 2;
+                this.targetX = x;
+                this.targetY = y;
+                this.stuck = 0;
+                this.color = `hsl(${30 + Math.random() * 20}, 50%, ${30 + Math.random() * 20}%)`;
+            }
+
+            isWalkable(gx, gy) {
+                if (gx < 0 || gx >= gridWidth || gy < 0 || gy >= gridHeight) return false;
+                const idx = gy * gridWidth + gx;
+                const diff = gridA[idx] - gridB[idx];
+                return diff > 0.3; // White = walkable
+            }
+
+            findPath() {
+                const gx = Math.floor(this.x / settings.scale);
+                const gy = Math.floor(this.y / settings.scale);
+
+                // Check 8 directions and find walkable ones
+                const directions = [];
+                const angles = [0, Math.PI/4, Math.PI/2, 3*Math.PI/4, Math.PI, -3*Math.PI/4, -Math.PI/2, -Math.PI/4];
+
+                for (const angle of angles) {
+                    const checkDist = 2;
+                    const nx = Math.floor(gx + Math.cos(angle) * checkDist);
+                    const ny = Math.floor(gy + Math.sin(angle) * checkDist);
+
+                    if (this.isWalkable(nx, ny)) {
+                        // Prefer directions close to current direction
+                        let angleDiff = Math.abs(angle - this.direction);
+                        if (angleDiff > Math.PI) angleDiff = 2 * Math.PI - angleDiff;
+                        const weight = 1 - angleDiff / Math.PI;
+                        directions.push({ angle, weight: weight + Math.random() * 0.3 });
+                    }
+                }
+
+                if (directions.length > 0) {
+                    // Sort by weight and pick from top choices
+                    directions.sort((a, b) => b.weight - a.weight);
+                    const choice = directions[Math.floor(Math.random() * Math.min(3, directions.length))];
+                    this.direction = choice.angle;
+                    this.stuck = 0;
+                } else {
+                    // No valid direction, turn around
+                    this.direction += Math.PI + (Math.random() - 0.5);
+                    this.stuck++;
+                }
+            }
+
+            update() {
+                // Find path periodically or when stuck
+                if (Math.random() < 0.1 || this.stuck > 5) {
+                    this.findPath();
+                }
+
+                // Move in current direction
+                const newX = this.x + Math.cos(this.direction) * this.speed;
+                const newY = this.y + Math.sin(this.direction) * this.speed;
+
+                const gx = Math.floor(newX / settings.scale);
+                const gy = Math.floor(newY / settings.scale);
+
+                if (this.isWalkable(gx, gy)) {
+                    this.x = newX;
+                    this.y = newY;
+                    this.stuck = 0;
+                } else {
+                    // Hit a wall, find new path
+                    this.findPath();
+                    this.stuck++;
+                }
+
+                // Wrap around edges
+                if (this.x < 0) this.x = width;
+                if (this.x > width) this.x = 0;
+                if (this.y < 0) this.y = height;
+                if (this.y > height) this.y = 0;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.direction);
+
+                // Body (oval)
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 8, 5, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Head
+                ctx.beginPath();
+                ctx.ellipse(7, 0, 4, 3.5, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Ears
+                ctx.beginPath();
+                ctx.ellipse(9, -3, 2.5, 2, 0, 0, Math.PI * 2);
+                ctx.ellipse(9, 3, 2.5, 2, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Inner ears (pink)
+                ctx.fillStyle = '#ffb6c1';
+                ctx.beginPath();
+                ctx.ellipse(9, -3, 1.5, 1.2, 0, 0, Math.PI * 2);
+                ctx.ellipse(9, 3, 1.5, 1.2, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Eyes
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                ctx.arc(9, -1.5, 1, 0, Math.PI * 2);
+                ctx.arc(9, 1.5, 1, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Nose
+                ctx.fillStyle = '#ffb6c1';
+                ctx.beginPath();
+                ctx.arc(11, 0, 1.2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Tail
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(-8, 0);
+                ctx.quadraticCurveTo(-12, -4, -16, -2);
+                ctx.stroke();
+
+                ctx.restore();
+            }
+        }
 
         function init() {
             width = window.innerWidth;
@@ -289,6 +516,13 @@
             gridA.fill(1.0);
             gridB.fill(0.0);
 
+            // Reset maze state
+            mazeComplete = false;
+            stabilityCounter = 0;
+            lastTotalChange = Infinity;
+            popupShown = false;
+            mice.length = 0;
+
             // Add initial seeds
             seedRandom();
 
@@ -297,6 +531,7 @@
 
             // Update stats
             document.getElementById('statsGrid').textContent = `${gridWidth}x${gridHeight}`;
+            document.getElementById('hint').textContent = 'Click or drag to add particles';
         }
 
         function seedRandom() {
@@ -336,6 +571,32 @@
             }
         }
 
+        function addMouse(canvasX, canvasY) {
+            // Find a walkable position near the click
+            const gx = Math.floor(canvasX / settings.scale);
+            const gy = Math.floor(canvasY / settings.scale);
+
+            // Search in expanding circles for a walkable spot
+            for (let r = 0; r < 20; r++) {
+                for (let angle = 0; angle < Math.PI * 2; angle += 0.3) {
+                    const checkX = Math.floor(gx + Math.cos(angle) * r);
+                    const checkY = Math.floor(gy + Math.sin(angle) * r);
+
+                    if (checkX >= 0 && checkX < gridWidth && checkY >= 0 && checkY < gridHeight) {
+                        const idx = checkY * gridWidth + checkX;
+                        const diff = gridA[idx] - gridB[idx];
+                        if (diff > 0.3) {
+                            mice.push(new Mouse(checkX * settings.scale, checkY * settings.scale));
+                            return;
+                        }
+                    }
+                }
+            }
+
+            // If no walkable spot found, add anyway
+            mice.push(new Mouse(canvasX, canvasY));
+        }
+
         function laplacian(grid, x, y) {
             const idx = y * gridWidth + x;
             const left = ((x - 1 + gridWidth) % gridWidth) + y * gridWidth;
@@ -367,6 +628,8 @@
             const dA = settings.diffA;
             const dB = settings.diffB;
 
+            let totalChange = 0;
+
             for (let y = 0; y < gridHeight; y++) {
                 for (let x = 0; x < gridWidth; x++) {
                     const idx = y * gridWidth + x;
@@ -380,15 +643,48 @@
                     nextA[idx] = a + (dA * lapA - abb + f * (1 - a));
                     nextB[idx] = b + (dB * lapB + abb - (k + f) * b);
 
+                    // Track changes for stability detection
+                    totalChange += Math.abs(nextA[idx] - a) + Math.abs(nextB[idx] - b);
+
                     // Clamp values
                     nextA[idx] = Math.max(0, Math.min(1, nextA[idx]));
                     nextB[idx] = Math.max(0, Math.min(1, nextB[idx]));
                 }
             }
 
+            // Check for maze completion (pattern has stabilized)
+            if (!mazeComplete) {
+                const avgChange = totalChange / (gridWidth * gridHeight);
+                if (avgChange < 0.0001) {
+                    stabilityCounter++;
+                    if (stabilityCounter > 50) {
+                        mazeComplete = true;
+                        paused = true;
+                        document.getElementById('pauseBtn').textContent = 'Play';
+                        showPopup();
+                    }
+                } else {
+                    stabilityCounter = 0;
+                }
+                lastTotalChange = totalChange;
+            }
+
             // Swap buffers
             [gridA, nextA] = [nextA, gridA];
             [gridB, nextB] = [nextB, gridB];
+        }
+
+        function showPopup() {
+            if (popupShown) return;
+            popupShown = true;
+            document.getElementById('popup').style.display = 'block';
+            document.getElementById('popupOverlay').style.display = 'block';
+            document.getElementById('hint').textContent = 'Click to add mice!';
+        }
+
+        function closePopup() {
+            document.getElementById('popup').style.display = 'none';
+            document.getElementById('popupOverlay').style.display = 'none';
         }
 
         function render() {
@@ -398,29 +694,16 @@
                 const a = gridA[i];
                 const b = gridB[i];
 
-                // Color based on chemical concentrations
-                const val = Math.floor((a - b) * 255);
-                const clamped = Math.max(0, Math.min(255, val));
-
-                // Create a blue-cyan-white gradient
-                let r, g, blue;
-                if (clamped < 128) {
-                    const t = clamped / 128;
-                    r = Math.floor(10 + t * 50);
-                    g = Math.floor(10 + t * 100);
-                    blue = Math.floor(30 + t * 150);
-                } else {
-                    const t = (clamped - 128) / 127;
-                    r = Math.floor(60 + t * 195);
-                    g = Math.floor(110 + t * 145);
-                    blue = Math.floor(180 + t * 75);
-                }
+                // Solid black and white - no gradient
+                // Threshold determines black vs white (higher = thicker white space)
+                const diff = a - b;
+                const color = diff > 0.3 ? 255 : 0;
 
                 const idx = i * 4;
-                data[idx] = r;
-                data[idx + 1] = g;
-                data[idx + 2] = blue;
-                data[idx + 3] = 255;
+                data[idx] = color;     // R
+                data[idx + 1] = color; // G
+                data[idx + 2] = color; // B
+                data[idx + 3] = 255;   // A
             }
 
             ctx.putImageData(imageData, 0, 0);
@@ -428,6 +711,11 @@
             // Scale up to fill canvas
             ctx.imageSmoothingEnabled = false;
             ctx.drawImage(canvas, 0, 0, gridWidth, gridHeight, 0, 0, width, height);
+
+            // Draw mice on top
+            for (const mouse of mice) {
+                mouse.draw();
+            }
         }
 
         function animate() {
@@ -441,6 +729,7 @@
                 document.getElementById('statsFps').textContent = fps;
                 document.getElementById('statsFK').textContent =
                     `${settings.feed.toFixed(3)} / ${settings.kill.toFixed(3)}`;
+                document.getElementById('statsMice').textContent = mice.length;
             }
 
             if (!paused) {
@@ -448,8 +737,14 @@
                 for (let i = 0; i < settings.speed; i++) {
                     simulate();
                 }
-                render();
             }
+
+            // Update mice even when simulation is paused
+            for (const mouse of mice) {
+                mouse.update();
+            }
+
+            render();
 
             requestAnimationFrame(animate);
         }
@@ -460,8 +755,13 @@
             const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
-            addChemical(x, y);
-            lastMousePos = { x, y };
+
+            if (mazeComplete) {
+                addMouse(x, y);
+            } else {
+                addChemical(x, y);
+                lastMousePos = { x, y };
+            }
         }
 
         function handleMouseMove(e) {
@@ -469,6 +769,11 @@
             const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
+
+            if (mazeComplete) {
+                // Don't drag-add mice, only on click
+                return;
+            }
 
             // Interpolate between last position and current
             if (lastMousePos) {
@@ -497,7 +802,14 @@
             e.preventDefault();
             const touch = e.touches[0];
             const rect = canvas.getBoundingClientRect();
-            addChemical(touch.clientX - rect.left, touch.clientY - rect.top);
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+
+            if (mazeComplete) {
+                addMouse(x, y);
+            } else {
+                addChemical(x, y);
+            }
         }
 
         // Control functions
@@ -524,12 +836,26 @@
         function resetSimulation() {
             gridA.fill(1.0);
             gridB.fill(0.0);
+            mazeComplete = false;
+            stabilityCounter = 0;
+            popupShown = false;
+            mice.length = 0;
+            paused = false;
+            document.getElementById('pauseBtn').textContent = 'Pause';
+            document.getElementById('hint').textContent = 'Click or drag to add particles';
+            closePopup();
             seedRandom();
         }
 
         function clearCanvas() {
             gridA.fill(1.0);
             gridB.fill(0.0);
+            mazeComplete = false;
+            stabilityCounter = 0;
+            popupShown = false;
+            mice.length = 0;
+            document.getElementById('hint').textContent = 'Click or drag to add particles';
+            closePopup();
         }
 
         function togglePause() {
