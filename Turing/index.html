@@ -375,7 +375,7 @@
                 if (gx < 0 || gx >= gridWidth || gy < 0 || gy >= gridHeight) return true;
                 const idx = gy * gridWidth + gx;
                 const diff = gridA[idx] - gridB[idx];
-                return diff <= 0.3; // Black = wall
+                return diff <= 0.15; // Black = wall
             }
 
             update() {
@@ -560,7 +560,7 @@
                     if (checkX >= 0 && checkX < gridWidth && checkY >= 0 && checkY < gridHeight) {
                         const idx = checkY * gridWidth + checkX;
                         const diff = gridA[idx] - gridB[idx];
-                        if (diff > 0.3) {
+                        if (diff > 0.15) {
                             balls.push(new Ball(checkX * settings.scale, checkY * settings.scale));
                             return;
                         }
@@ -670,9 +670,9 @@
                 const b = gridB[i];
 
                 // Solid black and white - no gradient
-                // Threshold determines black vs white (higher = thicker white space)
+                // Threshold determines black vs white (lower = wider white paths)
                 const diff = a - b;
-                const color = diff > 0.3 ? 255 : 0;
+                const color = diff > 0.15 ? 255 : 0;
 
                 const idx = i * 4;
                 data[idx] = color;     // R
