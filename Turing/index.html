@@ -3,29 +3,686 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Turing</title>
+    <title>Turing Patterns Explorer</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
+
         body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background: #1a1a2e;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0f;
         }
+
         canvas {
             display: block;
+        }
+
+        .controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #1a1a24;
+            padding: 20px;
+            border-radius: 12px;
+            color: #e0e0e0;
+            min-width: 220px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+
+        .controls h2 {
+            margin-bottom: 15px;
+            font-size: 18px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 10px;
+            color: #7ecfff;
+        }
+
+        .control-group {
+            margin-bottom: 12px;
+        }
+
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+            cursor: pointer;
+        }
+
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #7ecfff;
+            cursor: pointer;
+        }
+
+        .control-group input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #7ecfff;
+            cursor: pointer;
+            border: none;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .buttons button {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 6px;
+            background: #7ecfff;
+            color: #0a0a0f;
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .buttons button:hover {
+            opacity: 0.85;
+        }
+
+        .presets {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .presets h3 {
+            font-size: 12px;
+            margin-bottom: 8px;
+            text-align: center;
+            font-weight: 500;
+            color: #888;
+        }
+
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .preset-buttons button {
+            padding: 6px 8px;
+            border: 1px solid rgba(126, 207, 255, 0.3);
+            border-radius: 4px;
+            background: transparent;
+            color: #7ecfff;
+            font-size: 11px;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+        }
+
+        .preset-buttons button:hover {
+            background: rgba(126, 207, 255, 0.1);
+            border-color: rgba(126, 207, 255, 0.6);
+        }
+
+        .toggle-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #1a1a24;
+            color: #7ecfff;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: none;
+            z-index: 101;
+        }
+
+        .stats {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: #1a1a24;
+            padding: 12px 16px;
+            border-radius: 10px;
+            color: #e0e0e0;
+            font-size: 11px;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            z-index: 100;
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            padding: 2px 0;
+        }
+
+        .stats-label {
+            opacity: 0.6;
+        }
+
+        .stats-value {
+            color: #7ecfff;
+        }
+
+        .hint {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #1a1a24;
+            padding: 10px 14px;
+            border-radius: 8px;
+            color: #666;
+            font-size: 11px;
+            z-index: 100;
+        }
+
+        @media (max-width: 600px) {
+            .controls {
+                top: 60px;
+                right: 10px;
+                left: 10px;
+                min-width: auto;
+            }
+
+            .controls.hidden {
+                display: none;
+            }
+
+            .toggle-btn {
+                display: block;
+            }
+
+            .hint {
+                display: none;
+            }
         }
     </style>
 </head>
 <body>
     <canvas id="canvas"></canvas>
+
+    <div class="stats">
+        <div class="stats-row">
+            <span class="stats-label">FPS</span>
+            <span class="stats-value" id="statsFps">0</span>
+        </div>
+        <div class="stats-row">
+            <span class="stats-label">Grid</span>
+            <span class="stats-value" id="statsGrid">0x0</span>
+        </div>
+        <div class="stats-row">
+            <span class="stats-label">f / k</span>
+            <span class="stats-value" id="statsFK">0 / 0</span>
+        </div>
+    </div>
+
+    <div class="hint">Click or drag to add particles</div>
+
+    <button class="toggle-btn" onclick="toggleControls()">Controls</button>
+
+    <div class="controls" id="controls">
+        <h2>Turing Patterns</h2>
+
+        <div class="control-group">
+            <label>
+                <span>Feed Rate (f)</span>
+                <span id="feedVal">0.055</span>
+            </label>
+            <input type="range" id="feed" min="0.01" max="0.1" step="0.001" value="0.055">
+        </div>
+
+        <div class="control-group">
+            <label>
+                <span>Kill Rate (k)</span>
+                <span id="killVal">0.062</span>
+            </label>
+            <input type="range" id="kill" min="0.01" max="0.1" step="0.001" value="0.062">
+        </div>
+
+        <div class="control-group">
+            <label>
+                <span>Diffusion A</span>
+                <span id="diffAVal">1.0</span>
+            </label>
+            <input type="range" id="diffA" min="0.5" max="2.0" step="0.1" value="1.0">
+        </div>
+
+        <div class="control-group">
+            <label>
+                <span>Diffusion B</span>
+                <span id="diffBVal">0.5</span>
+            </label>
+            <input type="range" id="diffB" min="0.1" max="1.0" step="0.05" value="0.5">
+        </div>
+
+        <div class="control-group">
+            <label>
+                <span>Reaction Speed</span>
+                <span id="speedVal">10</span>
+            </label>
+            <input type="range" id="speed" min="1" max="20" step="1" value="10">
+        </div>
+
+        <div class="control-group">
+            <label>
+                <span>Resolution</span>
+                <span id="scaleVal">2</span>
+            </label>
+            <input type="range" id="scale" min="1" max="4" step="1" value="2">
+        </div>
+
+        <div class="control-group">
+            <label>
+                <span>Brush Size</span>
+                <span id="brushVal">15</span>
+            </label>
+            <input type="range" id="brush" min="5" max="50" step="1" value="15">
+        </div>
+
+        <div class="buttons">
+            <button onclick="resetSimulation()">Reset</button>
+            <button onclick="togglePause()" id="pauseBtn">Pause</button>
+        </div>
+
+        <div class="buttons">
+            <button onclick="seedRandom()">Seed Random</button>
+            <button onclick="clearCanvas()">Clear</button>
+        </div>
+
+        <div class="presets">
+            <h3>Presets</h3>
+            <div class="preset-buttons">
+                <button onclick="applyPreset('maze')">Maze</button>
+                <button onclick="applyPreset('coral')">Coral</button>
+                <button onclick="applyPreset('mitosis')">Mitosis</button>
+                <button onclick="applyPreset('holes')">Holes</button>
+                <button onclick="applyPreset('waves')">Waves</button>
+                <button onclick="applyPreset('spots')">Spots</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // Turing simulation will go here
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        let width, height, gridWidth, gridHeight;
+        let gridA, gridB, nextA, nextB;
+        let imageData;
+        let paused = false;
+        let mouseDown = false;
+        let lastMousePos = null;
+
+        // FPS tracking
+        let lastTime = performance.now();
+        let frameCount = 0;
+        let fps = 0;
+
+        // Settings
+        const settings = {
+            feed: 0.055,
+            kill: 0.062,
+            diffA: 1.0,
+            diffB: 0.5,
+            speed: 10,
+            scale: 2,
+            brush: 15
+        };
+
+        // Presets
+        const presets = {
+            maze: { feed: 0.029, kill: 0.057 },
+            coral: { feed: 0.0545, kill: 0.062 },
+            mitosis: { feed: 0.0367, kill: 0.0649 },
+            holes: { feed: 0.039, kill: 0.058 },
+            waves: { feed: 0.014, kill: 0.054 },
+            spots: { feed: 0.03, kill: 0.06 }
+        };
+
+        function init() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+
+            gridWidth = Math.floor(width / settings.scale);
+            gridHeight = Math.floor(height / settings.scale);
+
+            // Initialize grids
+            gridA = new Float32Array(gridWidth * gridHeight);
+            gridB = new Float32Array(gridWidth * gridHeight);
+            nextA = new Float32Array(gridWidth * gridHeight);
+            nextB = new Float32Array(gridWidth * gridHeight);
+
+            // Fill with chemical A
+            gridA.fill(1.0);
+            gridB.fill(0.0);
+
+            // Add initial seeds
+            seedRandom();
+
+            // Create image data for rendering
+            imageData = ctx.createImageData(gridWidth, gridHeight);
+
+            // Update stats
+            document.getElementById('statsGrid').textContent = `${gridWidth}x${gridHeight}`;
+        }
+
+        function seedRandom() {
+            const numSeeds = 10 + Math.floor(Math.random() * 10);
+            for (let s = 0; s < numSeeds; s++) {
+                const cx = Math.floor(Math.random() * gridWidth);
+                const cy = Math.floor(Math.random() * gridHeight);
+                const radius = 3 + Math.floor(Math.random() * 5);
+
+                for (let i = -radius; i <= radius; i++) {
+                    for (let j = -radius; j <= radius; j++) {
+                        if (i * i + j * j <= radius * radius) {
+                            const x = (cx + i + gridWidth) % gridWidth;
+                            const y = (cy + j + gridHeight) % gridHeight;
+                            const idx = y * gridWidth + x;
+                            gridB[idx] = 1.0;
+                        }
+                    }
+                }
+            }
+        }
+
+        function addChemical(canvasX, canvasY) {
+            const cx = Math.floor(canvasX / settings.scale);
+            const cy = Math.floor(canvasY / settings.scale);
+            const radius = Math.floor(settings.brush / settings.scale);
+
+            for (let i = -radius; i <= radius; i++) {
+                for (let j = -radius; j <= radius; j++) {
+                    if (i * i + j * j <= radius * radius) {
+                        const x = (cx + i + gridWidth) % gridWidth;
+                        const y = (cy + j + gridHeight) % gridHeight;
+                        const idx = y * gridWidth + x;
+                        gridB[idx] = 1.0;
+                    }
+                }
+            }
+        }
+
+        function laplacian(grid, x, y) {
+            const idx = y * gridWidth + x;
+            const left = ((x - 1 + gridWidth) % gridWidth) + y * gridWidth;
+            const right = ((x + 1) % gridWidth) + y * gridWidth;
+            const up = x + ((y - 1 + gridHeight) % gridHeight) * gridWidth;
+            const down = x + ((y + 1) % gridHeight) * gridWidth;
+
+            const upLeft = ((x - 1 + gridWidth) % gridWidth) + ((y - 1 + gridHeight) % gridHeight) * gridWidth;
+            const upRight = ((x + 1) % gridWidth) + ((y - 1 + gridHeight) % gridHeight) * gridWidth;
+            const downLeft = ((x - 1 + gridWidth) % gridWidth) + ((y + 1) % gridHeight) * gridWidth;
+            const downRight = ((x + 1) % gridWidth) + ((y + 1) % gridHeight) * gridWidth;
+
+            return (
+                grid[left] * 0.2 +
+                grid[right] * 0.2 +
+                grid[up] * 0.2 +
+                grid[down] * 0.2 +
+                grid[upLeft] * 0.05 +
+                grid[upRight] * 0.05 +
+                grid[downLeft] * 0.05 +
+                grid[downRight] * 0.05 -
+                grid[idx]
+            );
+        }
+
+        function simulate() {
+            const f = settings.feed;
+            const k = settings.kill;
+            const dA = settings.diffA;
+            const dB = settings.diffB;
+
+            for (let y = 0; y < gridHeight; y++) {
+                for (let x = 0; x < gridWidth; x++) {
+                    const idx = y * gridWidth + x;
+                    const a = gridA[idx];
+                    const b = gridB[idx];
+                    const abb = a * b * b;
+
+                    const lapA = laplacian(gridA, x, y);
+                    const lapB = laplacian(gridB, x, y);
+
+                    nextA[idx] = a + (dA * lapA - abb + f * (1 - a));
+                    nextB[idx] = b + (dB * lapB + abb - (k + f) * b);
+
+                    // Clamp values
+                    nextA[idx] = Math.max(0, Math.min(1, nextA[idx]));
+                    nextB[idx] = Math.max(0, Math.min(1, nextB[idx]));
+                }
+            }
+
+            // Swap buffers
+            [gridA, nextA] = [nextA, gridA];
+            [gridB, nextB] = [nextB, gridB];
+        }
+
+        function render() {
+            const data = imageData.data;
+
+            for (let i = 0; i < gridWidth * gridHeight; i++) {
+                const a = gridA[i];
+                const b = gridB[i];
+
+                // Color based on chemical concentrations
+                const val = Math.floor((a - b) * 255);
+                const clamped = Math.max(0, Math.min(255, val));
+
+                // Create a blue-cyan-white gradient
+                let r, g, blue;
+                if (clamped < 128) {
+                    const t = clamped / 128;
+                    r = Math.floor(10 + t * 50);
+                    g = Math.floor(10 + t * 100);
+                    blue = Math.floor(30 + t * 150);
+                } else {
+                    const t = (clamped - 128) / 127;
+                    r = Math.floor(60 + t * 195);
+                    g = Math.floor(110 + t * 145);
+                    blue = Math.floor(180 + t * 75);
+                }
+
+                const idx = i * 4;
+                data[idx] = r;
+                data[idx + 1] = g;
+                data[idx + 2] = blue;
+                data[idx + 3] = 255;
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+
+            // Scale up to fill canvas
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(canvas, 0, 0, gridWidth, gridHeight, 0, 0, width, height);
+        }
+
+        function animate() {
+            // FPS calculation
+            frameCount++;
+            const currentTime = performance.now();
+            if (currentTime - lastTime >= 1000) {
+                fps = frameCount;
+                frameCount = 0;
+                lastTime = currentTime;
+                document.getElementById('statsFps').textContent = fps;
+                document.getElementById('statsFK').textContent =
+                    `${settings.feed.toFixed(3)} / ${settings.kill.toFixed(3)}`;
+            }
+
+            if (!paused) {
+                // Run simulation steps
+                for (let i = 0; i < settings.speed; i++) {
+                    simulate();
+                }
+                render();
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // Event handlers
+        function handleMouseDown(e) {
+            mouseDown = true;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            addChemical(x, y);
+            lastMousePos = { x, y };
+        }
+
+        function handleMouseMove(e) {
+            if (!mouseDown) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            // Interpolate between last position and current
+            if (lastMousePos) {
+                const dx = x - lastMousePos.x;
+                const dy = y - lastMousePos.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const steps = Math.max(1, Math.floor(dist / 5));
+
+                for (let i = 0; i <= steps; i++) {
+                    const t = i / steps;
+                    const ix = lastMousePos.x + dx * t;
+                    const iy = lastMousePos.y + dy * t;
+                    addChemical(ix, iy);
+                }
+            }
+
+            lastMousePos = { x, y };
+        }
+
+        function handleMouseUp() {
+            mouseDown = false;
+            lastMousePos = null;
+        }
+
+        function handleTouch(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            addChemical(touch.clientX - rect.left, touch.clientY - rect.top);
+        }
+
+        // Control functions
+        function setupControls() {
+            const controls = ['feed', 'kill', 'diffA', 'diffB', 'speed', 'scale', 'brush'];
+
+            controls.forEach(name => {
+                const input = document.getElementById(name);
+                const display = document.getElementById(name + 'Val');
+
+                input.addEventListener('input', () => {
+                    const value = parseFloat(input.value);
+                    settings[name] = value;
+
+                    if (name === 'feed' || name === 'kill') {
+                        display.textContent = value.toFixed(3);
+                    } else {
+                        display.textContent = value.toFixed(1);
+                    }
+
+                    if (name === 'scale') {
+                        display.textContent = value;
+                        init();
+                    }
+                });
+            });
+        }
+
+        function resetSimulation() {
+            gridA.fill(1.0);
+            gridB.fill(0.0);
+            seedRandom();
+        }
+
+        function clearCanvas() {
+            gridA.fill(1.0);
+            gridB.fill(0.0);
+        }
+
+        function togglePause() {
+            paused = !paused;
+            document.getElementById('pauseBtn').textContent = paused ? 'Play' : 'Pause';
+        }
+
+        function toggleControls() {
+            document.getElementById('controls').classList.toggle('hidden');
+        }
+
+        function applyPreset(name) {
+            const preset = presets[name];
+            if (!preset) return;
+
+            settings.feed = preset.feed;
+            settings.kill = preset.kill;
+
+            document.getElementById('feed').value = preset.feed;
+            document.getElementById('feedVal').textContent = preset.feed.toFixed(3);
+            document.getElementById('kill').value = preset.kill;
+            document.getElementById('killVal').textContent = preset.kill.toFixed(3);
+
+            // Reset and reseed with new parameters
+            resetSimulation();
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                togglePause();
+            } else if (e.code === 'KeyR') {
+                resetSimulation();
+            } else if (e.code === 'KeyC') {
+                clearCanvas();
+            }
+        });
+
+        // Mouse/touch events
+        canvas.addEventListener('mousedown', handleMouseDown);
+        canvas.addEventListener('mousemove', handleMouseMove);
+        canvas.addEventListener('mouseup', handleMouseUp);
+        canvas.addEventListener('mouseleave', handleMouseUp);
+        canvas.addEventListener('touchstart', handleTouch, { passive: false });
+        canvas.addEventListener('touchmove', handleTouch, { passive: false });
+
+        // Window resize
+        window.addEventListener('resize', () => {
+            init();
+        });
+
+        // Initialize
+        setupControls();
+        init();
+        animate();
     </script>
 </body>
 </html>
