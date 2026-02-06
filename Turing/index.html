@@ -32,8 +32,6 @@
             min-width: 220px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
             z-index: 100;
-            max-height: calc(100vh - 40px);
-            overflow-y: auto;
         }
 
         .controls h2 {
@@ -107,42 +105,6 @@
 
         .buttons button:hover {
             opacity: 0.85;
-        }
-
-        .presets {
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .presets h3 {
-            font-size: 12px;
-            margin-bottom: 8px;
-            text-align: center;
-            font-weight: 500;
-            color: #888;
-        }
-
-        .preset-buttons {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 6px;
-        }
-
-        .preset-buttons button {
-            padding: 6px 8px;
-            border: 1px solid rgba(126, 207, 255, 0.3);
-            border-radius: 4px;
-            background: transparent;
-            color: #7ecfff;
-            font-size: 11px;
-            cursor: pointer;
-            transition: background 0.2s, border-color 0.2s;
-        }
-
-        .preset-buttons button:hover {
-            background: rgba(126, 207, 255, 0.1);
-            border-color: rgba(126, 207, 255, 0.6);
         }
 
         .toggle-btn {
@@ -249,33 +211,17 @@
         <div class="control-group">
             <label>
                 <span>Feed Rate (f)</span>
-                <span id="feedVal">0.055</span>
+                <span id="feedVal">0.029</span>
             </label>
-            <input type="range" id="feed" min="0.01" max="0.1" step="0.001" value="0.055">
+            <input type="range" id="feed" min="0.01" max="0.1" step="0.001" value="0.029">
         </div>
 
         <div class="control-group">
             <label>
                 <span>Kill Rate (k)</span>
-                <span id="killVal">0.062</span>
+                <span id="killVal">0.057</span>
             </label>
-            <input type="range" id="kill" min="0.01" max="0.1" step="0.001" value="0.062">
-        </div>
-
-        <div class="control-group">
-            <label>
-                <span>Diffusion A</span>
-                <span id="diffAVal">1.0</span>
-            </label>
-            <input type="range" id="diffA" min="0.5" max="2.0" step="0.1" value="1.0">
-        </div>
-
-        <div class="control-group">
-            <label>
-                <span>Diffusion B</span>
-                <span id="diffBVal">0.5</span>
-            </label>
-            <input type="range" id="diffB" min="0.1" max="1.0" step="0.05" value="0.5">
+            <input type="range" id="kill" min="0.01" max="0.1" step="0.001" value="0.057">
         </div>
 
         <div class="control-group">
@@ -286,22 +232,6 @@
             <input type="range" id="speed" min="1" max="20" step="1" value="10">
         </div>
 
-        <div class="control-group">
-            <label>
-                <span>Resolution</span>
-                <span id="scaleVal">2</span>
-            </label>
-            <input type="range" id="scale" min="1" max="4" step="1" value="2">
-        </div>
-
-        <div class="control-group">
-            <label>
-                <span>Brush Size</span>
-                <span id="brushVal">15</span>
-            </label>
-            <input type="range" id="brush" min="5" max="50" step="1" value="15">
-        </div>
-
         <div class="buttons">
             <button onclick="resetSimulation()">Reset</button>
             <button onclick="togglePause()" id="pauseBtn">Pause</button>
@@ -310,18 +240,6 @@
         <div class="buttons">
             <button onclick="seedRandom()">Seed Random</button>
             <button onclick="clearCanvas()">Clear</button>
-        </div>
-
-        <div class="presets">
-            <h3>Presets</h3>
-            <div class="preset-buttons">
-                <button onclick="applyPreset('maze')">Maze</button>
-                <button onclick="applyPreset('coral')">Coral</button>
-                <button onclick="applyPreset('mitosis')">Mitosis</button>
-                <button onclick="applyPreset('holes')">Holes</button>
-                <button onclick="applyPreset('waves')">Waves</button>
-                <button onclick="applyPreset('spots')">Spots</button>
-            </div>
         </div>
     </div>
 
@@ -341,25 +259,15 @@
         let frameCount = 0;
         let fps = 0;
 
-        // Settings
+        // Settings (defaults to maze pattern)
         const settings = {
-            feed: 0.055,
-            kill: 0.062,
+            feed: 0.029,
+            kill: 0.057,
             diffA: 1.0,
             diffB: 0.5,
             speed: 10,
             scale: 2,
             brush: 15
-        };
-
-        // Presets
-        const presets = {
-            maze: { feed: 0.029, kill: 0.057 },
-            coral: { feed: 0.0545, kill: 0.062 },
-            mitosis: { feed: 0.0367, kill: 0.0649 },
-            holes: { feed: 0.039, kill: 0.058 },
-            waves: { feed: 0.014, kill: 0.054 },
-            spots: { feed: 0.03, kill: 0.06 }
         };
 
         function init() {
@@ -594,7 +502,7 @@
 
         // Control functions
         function setupControls() {
-            const controls = ['feed', 'kill', 'diffA', 'diffB', 'speed', 'scale', 'brush'];
+            const controls = ['feed', 'kill', 'speed'];
 
             controls.forEach(name => {
                 const input = document.getElementById(name);
@@ -607,12 +515,7 @@
                     if (name === 'feed' || name === 'kill') {
                         display.textContent = value.toFixed(3);
                     } else {
-                        display.textContent = value.toFixed(1);
-                    }
-
-                    if (name === 'scale') {
                         display.textContent = value;
-                        init();
                     }
                 });
             });
@@ -636,22 +539,6 @@
 
         function toggleControls() {
             document.getElementById('controls').classList.toggle('hidden');
-        }
-
-        function applyPreset(name) {
-            const preset = presets[name];
-            if (!preset) return;
-
-            settings.feed = preset.feed;
-            settings.kill = preset.kill;
-
-            document.getElementById('feed').value = preset.feed;
-            document.getElementById('feedVal').textContent = preset.feed.toFixed(3);
-            document.getElementById('kill').value = preset.kill;
-            document.getElementById('killVal').textContent = preset.kill.toFixed(3);
-
-            // Reset and reseed with new parameters
-            resetSimulation();
         }
 
         // Keyboard shortcuts
