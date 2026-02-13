@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decision Neuron - Should I Go to the Gym?</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0f;
+            color: #e0e0e0;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        .controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(15, 15, 25, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            min-width: 280px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 100;
+        }
+
+        .controls h2 {
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+            color: #a0a0ff;
+        }
+
+        .controls .subtitle {
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .controls h3 {
+            font-size: 0.75rem;
+            margin: 15px 0 10px;
+            color: #8080c0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .control-group {
+            margin-bottom: 12px;
+        }
+
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            margin-bottom: 4px;
+            color: #c0c0c0;
+        }
+
+        .control-group label span {
+            color: #80c0ff;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 0.75rem;
+        }
+
+        .control-group .helper {
+            font-size: 0.65rem;
+            color: #606060;
+            margin-bottom: 4px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            background: linear-gradient(135deg, #6060ff, #a060ff);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(100, 100, 255, 0.4);
+        }
+
+        .decision-display {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(15, 15, 25, 0.95);
+            padding: 20px 30px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 100;
+        }
+
+        .decision-label {
+            font-size: 0.7rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+        }
+
+        .decision-result {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px currentColor;
+        }
+
+        .decision-result.go {
+            color: #00ff88;
+        }
+
+        .decision-result.skip {
+            color: #ff4466;
+        }
+
+        .decision-score {
+            font-size: 0.9rem;
+            color: #80c0ff;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+        }
+
+        .formula-display {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(15, 15, 25, 0.9);
+            padding: 15px 20px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 100;
+            max-width: 500px;
+        }
+
+        .formula-display .formula-title {
+            color: #8080c0;
+            margin-bottom: 8px;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .formula-display .formula-line {
+            margin: 4px 0;
+            color: #a0a0a0;
+        }
+
+        .formula-display .positive {
+            color: #00cc66;
+        }
+
+        .formula-display .negative {
+            color: #ff6666;
+        }
+
+        .formula-display .result {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: #80c0ff;
+        }
+
+        .toggle-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(15, 15, 25, 0.95);
+            color: #e0e0e0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: none;
+            z-index: 101;
+        }
+
+        @media (max-width: 800px) {
+            .controls {
+                display: none;
+            }
+
+            .controls.visible {
+                display: block;
+                top: 60px;
+                right: 10px;
+                left: 10px;
+                min-width: auto;
+            }
+
+            .toggle-btn {
+                display: block;
+            }
+
+            .formula-display {
+                display: none;
+            }
+
+            .decision-display {
+                left: 10px;
+                right: 10px;
+                top: auto;
+                bottom: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+
+    <div class="decision-display">
+        <div class="decision-label">Decision</div>
+        <div class="decision-result go" id="decisionResult">GO TO GYM</div>
+        <div class="decision-score">Score: <span id="decisionScore">0.50</span></div>
+    </div>
+
+    <div class="formula-display">
+        <div class="formula-title">Calculation Breakdown</div>
+        <div class="formula-line" id="formula1"></div>
+        <div class="formula-line" id="formula2"></div>
+        <div class="formula-line" id="formula3"></div>
+        <div class="formula-line" id="formulaBias"></div>
+        <div class="formula-line result" id="formulaResult"></div>
+    </div>
+
+    <button class="toggle-btn" onclick="toggleControls()">Controls</button>
+
+    <div class="controls" id="controls">
+        <h2>Decision Neuron</h2>
+        <div class="subtitle">Should I go to the gym in the morning?</div>
+
+        <h3>Input Factors</h3>
+        <div class="control-group">
+            <label>Bedtime <span id="bedtimeValue">11pm</span></label>
+            <div class="helper">Earlier = more likely to go</div>
+            <input type="range" id="bedtimeSlider" min="-1" max="1" step="0.05" value="0">
+        </div>
+        <div class="control-group">
+            <label>Gym Time <span id="gymTimeValue">7am</span></label>
+            <div class="helper">Later = more likely to go</div>
+            <input type="range" id="gymTimeSlider" min="-1" max="1" step="0.05" value="0">
+        </div>
+        <div class="control-group">
+            <label>Morning Busyness <span id="busyValue">Normal</span></label>
+            <div class="helper">Less busy = more likely to go</div>
+            <input type="range" id="busySlider" min="-1" max="1" step="0.05" value="0">
+        </div>
+
+        <h3>Weights (Importance)</h3>
+        <div class="control-group">
+            <label>Bedtime Weight <span id="w1Value">1.00</span></label>
+            <input type="range" id="w1Slider" min="-2" max="2" step="0.1" value="1">
+        </div>
+        <div class="control-group">
+            <label>Gym Time Weight <span id="w2Value">0.80</span></label>
+            <input type="range" id="w2Slider" min="-2" max="2" step="0.1" value="0.8">
+        </div>
+        <div class="control-group">
+            <label>Busyness Weight <span id="w3Value">-0.50</span></label>
+            <input type="range" id="w3Slider" min="-2" max="2" step="0.1" value="-0.5">
+        </div>
+
+        <h3>Bias</h3>
+        <div class="control-group">
+            <label>Health Consciousness <span id="biasValue">0.50</span></label>
+            <div class="helper">Baseline motivation to exercise</div>
+            <input type="range" id="biasSlider" min="-2" max="2" step="0.1" value="0.5">
+        </div>
+
+        <h3>Threshold</h3>
+        <div class="control-group">
+            <label>Decision Threshold <span id="thresholdValue">0.00</span></label>
+            <div class="helper">Score must exceed this to GO</div>
+            <input type="range" id="thresholdSlider" min="-2" max="2" step="0.1" value="0">
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+
+        // Perceptron parameters
+        const params = {
+            bedtime: 0,
+            gymTime: 0,
+            busyness: 0,
+            w1: 1.0,
+            w2: 0.8,
+            w3: -0.5,
+            bias: 0.5,
+            threshold: 0
+        };
+
+        // Animation state
+        let pulses = [];
+        let time = 0;
+
+        // Node positions (will be calculated on resize)
+        let nodes = {
+            inputs: [],
+            neuron: { x: 0, y: 0 },
+            output: { x: 0, y: 0 },
+            bias: { x: 0, y: 0 }
+        };
+
+        function init() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+
+            // Calculate node positions
+            const centerY = height / 2;
+            const leftX = width * 0.2;
+            const neuronX = width * 0.5;
+            const rightX = width * 0.75;
+            const spacing = height * 0.2;
+
+            nodes.inputs = [
+                { x: leftX, y: centerY - spacing, label: 'Bedtime', value: params.bedtime },
+                { x: leftX, y: centerY, label: 'Gym Time', value: params.gymTime },
+                { x: leftX, y: centerY + spacing, label: 'Busyness', value: params.busyness }
+            ];
+            nodes.neuron = { x: neuronX, y: centerY };
+            nodes.output = { x: rightX, y: centerY };
+            nodes.bias = { x: neuronX, y: centerY + spacing * 1.5, label: 'Bias' };
+        }
+
+        function calculateDecision() {
+            const term1 = params.bedtime * params.w1;
+            const term2 = params.gymTime * params.w2;
+            const term3 = params.busyness * params.w3;
+            const score = term1 + term2 + term3 + params.bias;
+            return { score, term1, term2, term3, go: score > params.threshold };
+        }
+
+        function updateDisplay() {
+            const decision = calculateDecision();
+
+            // Update decision display
+            const resultEl = document.getElementById('decisionResult');
+            resultEl.textContent = decision.go ? 'GO TO GYM' : 'SKIP TODAY';
+            resultEl.className = 'decision-result ' + (decision.go ? 'go' : 'skip');
+            document.getElementById('decisionScore').textContent = decision.score.toFixed(2);
+
+            // Update formula display
+            const formatTerm = (val, weight, result) => {
+                const sign = result >= 0 ? '+' : '';
+                const cls = result >= 0 ? 'positive' : 'negative';
+                return `<span class="${cls}">${val.toFixed(2)} × ${weight.toFixed(2)} = ${sign}${result.toFixed(2)}</span>`;
+            };
+
+            document.getElementById('formula1').innerHTML = `Bedtime: ${formatTerm(params.bedtime, params.w1, decision.term1)}`;
+            document.getElementById('formula2').innerHTML = `Gym Time: ${formatTerm(params.gymTime, params.w2, decision.term2)}`;
+            document.getElementById('formula3').innerHTML = `Busyness: ${formatTerm(params.busyness, params.w3, decision.term3)}`;
+            document.getElementById('formulaBias').innerHTML = `Bias: <span class="${params.bias >= 0 ? 'positive' : 'negative'}">${params.bias >= 0 ? '+' : ''}${params.bias.toFixed(2)}</span>`;
+            document.getElementById('formulaResult').innerHTML = `Total: ${decision.score.toFixed(2)} ${decision.go ? '> ' : '≤ '}${params.threshold.toFixed(2)} → <strong>${decision.go ? 'GO!' : 'SKIP'}</strong>`;
+
+            // Update node values
+            nodes.inputs[0].value = params.bedtime;
+            nodes.inputs[1].value = params.gymTime;
+            nodes.inputs[2].value = params.busyness;
+        }
+
+        function drawGlow(x, y, radius, color, intensity = 1) {
+            const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius * 2);
+            gradient.addColorStop(0, color.replace(')', `, ${0.3 * intensity})`).replace('rgb', 'rgba'));
+            gradient.addColorStop(1, 'transparent');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(x, y, radius * 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawNode(x, y, radius, color, label, value = null) {
+            // Glow
+            drawGlow(x, y, radius, color);
+
+            // Node circle
+            const gradient = ctx.createRadialGradient(x - radius * 0.3, y - radius * 0.3, 0, x, y, radius);
+            gradient.addColorStop(0, '#ffffff');
+            gradient.addColorStop(0.3, color);
+            gradient.addColorStop(1, color.replace(')', ', 0.5)').replace('rgb', 'rgba'));
+
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Label
+            ctx.fillStyle = '#a0a0a0';
+            ctx.font = '12px -apple-system, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(label, x, y - radius - 15);
+
+            // Value
+            if (value !== null) {
+                ctx.fillStyle = '#80c0ff';
+                ctx.font = '11px SF Mono, Monaco, monospace';
+                ctx.fillText(value.toFixed(2), x, y + 5);
+            }
+        }
+
+        function drawConnection(x1, y1, x2, y2, weight, inputValue) {
+            const contribution = inputValue * weight;
+            const isPositive = contribution >= 0;
+            const intensity = Math.min(Math.abs(contribution), 1);
+
+            // Line color based on weight sign
+            const color = isPositive ? `rgba(0, 200, 100, ${0.3 + intensity * 0.5})` : `rgba(255, 80, 80, ${0.3 + intensity * 0.5})`;
+
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2 + Math.abs(weight) * 2;
+            ctx.stroke();
+
+            // Weight label at midpoint
+            const midX = (x1 + x2) / 2;
+            const midY = (y1 + y2) / 2;
+
+            ctx.fillStyle = isPositive ? '#00cc66' : '#ff6666';
+            ctx.font = 'bold 11px SF Mono, Monaco, monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(`×${weight.toFixed(1)}`, midX, midY - 8);
+        }
+
+        function drawPulse(pulse) {
+            const t = pulse.progress;
+            const x = pulse.x1 + (pulse.x2 - pulse.x1) * t;
+            const y = pulse.y1 + (pulse.y2 - pulse.y1) * t;
+
+            const color = pulse.positive ? 'rgb(0, 255, 150)' : 'rgb(255, 100, 100)';
+            drawGlow(x, y, 8, color, 1 - t * 0.5);
+
+            ctx.beginPath();
+            ctx.arc(x, y, 6, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+        }
+
+        function spawnPulses() {
+            const weights = [params.w1, params.w2, params.w3];
+            const values = [params.bedtime, params.gymTime, params.busyness];
+
+            nodes.inputs.forEach((input, i) => {
+                if (Math.random() < 0.02) {
+                    const contribution = values[i] * weights[i];
+                    pulses.push({
+                        x1: input.x + 25,
+                        y1: input.y,
+                        x2: nodes.neuron.x - 40,
+                        y2: nodes.neuron.y,
+                        progress: 0,
+                        speed: 0.015 + Math.random() * 0.01,
+                        positive: contribution >= 0
+                    });
+                }
+            });
+
+            // Bias pulse
+            if (Math.random() < 0.015) {
+                pulses.push({
+                    x1: nodes.bias.x,
+                    y1: nodes.bias.y - 20,
+                    x2: nodes.neuron.x,
+                    y2: nodes.neuron.y + 30,
+                    progress: 0,
+                    speed: 0.02,
+                    positive: params.bias >= 0
+                });
+            }
+
+            // Output pulse
+            const decision = calculateDecision();
+            if (Math.random() < 0.025) {
+                pulses.push({
+                    x1: nodes.neuron.x + 40,
+                    y1: nodes.neuron.y,
+                    x2: nodes.output.x - 30,
+                    y2: nodes.output.y,
+                    progress: 0,
+                    speed: 0.02,
+                    positive: decision.go
+                });
+            }
+        }
+
+        function render() {
+            ctx.fillStyle = '#0a0a0f';
+            ctx.fillRect(0, 0, width, height);
+
+            // Draw subtle grid
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.02)';
+            ctx.lineWidth = 1;
+            for (let x = 0; x < width; x += 50) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < height; y += 50) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
+            }
+
+            const decision = calculateDecision();
+            const weights = [params.w1, params.w2, params.w3];
+            const values = [params.bedtime, params.gymTime, params.busyness];
+
+            // Draw connections from inputs to neuron
+            nodes.inputs.forEach((input, i) => {
+                drawConnection(input.x + 25, input.y, nodes.neuron.x - 40, nodes.neuron.y, weights[i], values[i]);
+            });
+
+            // Draw bias connection
+            ctx.beginPath();
+            ctx.moveTo(nodes.bias.x, nodes.bias.y - 20);
+            ctx.lineTo(nodes.neuron.x, nodes.neuron.y + 30);
+            ctx.strokeStyle = params.bias >= 0 ? 'rgba(0, 200, 100, 0.5)' : 'rgba(255, 80, 80, 0.5)';
+            ctx.lineWidth = 2 + Math.abs(params.bias);
+            ctx.stroke();
+
+            // Draw output connection
+            ctx.beginPath();
+            ctx.moveTo(nodes.neuron.x + 40, nodes.neuron.y);
+            ctx.lineTo(nodes.output.x - 30, nodes.output.y);
+            ctx.strokeStyle = decision.go ? 'rgba(0, 255, 150, 0.6)' : 'rgba(255, 80, 80, 0.6)';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            // Draw pulses
+            pulses.forEach(pulse => drawPulse(pulse));
+
+            // Draw input nodes
+            nodes.inputs.forEach((input, i) => {
+                const labels = ['Bedtime', 'Gym Time', 'Busyness'];
+                drawNode(input.x, input.y, 25, 'rgb(100, 100, 200)', labels[i], values[i]);
+            });
+
+            // Draw neuron (summation node)
+            const neuronColor = decision.go ? 'rgb(0, 200, 100)' : 'rgb(200, 80, 80)';
+            drawNode(nodes.neuron.x, nodes.neuron.y, 40, neuronColor, 'Σ + Activation', decision.score);
+
+            // Draw output node
+            const outputColor = decision.go ? 'rgb(0, 255, 150)' : 'rgb(255, 80, 80)';
+            drawNode(nodes.output.x, nodes.output.y, 30, outputColor, decision.go ? 'GO!' : 'SKIP', null);
+
+            // Draw output text in node
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 14px -apple-system, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(decision.go ? 'YES' : 'NO', nodes.output.x, nodes.output.y + 5);
+
+            // Draw bias node
+            drawNode(nodes.bias.x, nodes.bias.y, 20, params.bias >= 0 ? 'rgb(0, 180, 100)' : 'rgb(200, 80, 80)', 'Health Conscious', params.bias);
+        }
+
+        function animate() {
+            time += 0.016;
+
+            // Update pulses
+            pulses = pulses.filter(pulse => {
+                pulse.progress += pulse.speed;
+                return pulse.progress < 1;
+            });
+
+            spawnPulses();
+            render();
+            requestAnimationFrame(animate);
+        }
+
+        function formatBedtime(val) {
+            if (val <= -0.67) return '8pm';
+            if (val <= -0.33) return '9pm';
+            if (val <= 0) return '10pm';
+            if (val <= 0.33) return '11pm';
+            if (val <= 0.67) return '12am';
+            if (val <= 1) return '1am';
+            return '2am';
+        }
+
+        function formatGymTime(val) {
+            if (val <= -0.67) return '9am';
+            if (val <= -0.33) return '8am';
+            if (val <= 0) return '7am';
+            if (val <= 0.33) return '6am';
+            if (val <= 0.67) return '5:30am';
+            return '5am';
+        }
+
+        function formatBusyness(val) {
+            if (val <= -0.5) return 'Free';
+            if (val <= 0) return 'Light';
+            if (val <= 0.5) return 'Normal';
+            return 'Packed';
+        }
+
+        function setupControls() {
+            // Input sliders
+            document.getElementById('bedtimeSlider').addEventListener('input', (e) => {
+                params.bedtime = parseFloat(e.target.value);
+                document.getElementById('bedtimeValue').textContent = formatBedtime(params.bedtime);
+                updateDisplay();
+            });
+
+            document.getElementById('gymTimeSlider').addEventListener('input', (e) => {
+                params.gymTime = parseFloat(e.target.value);
+                document.getElementById('gymTimeValue').textContent = formatGymTime(params.gymTime);
+                updateDisplay();
+            });
+
+            document.getElementById('busySlider').addEventListener('input', (e) => {
+                params.busyness = parseFloat(e.target.value);
+                document.getElementById('busyValue').textContent = formatBusyness(params.busyness);
+                updateDisplay();
+            });
+
+            // Weight sliders
+            document.getElementById('w1Slider').addEventListener('input', (e) => {
+                params.w1 = parseFloat(e.target.value);
+                document.getElementById('w1Value').textContent = params.w1.toFixed(2);
+                updateDisplay();
+            });
+
+            document.getElementById('w2Slider').addEventListener('input', (e) => {
+                params.w2 = parseFloat(e.target.value);
+                document.getElementById('w2Value').textContent = params.w2.toFixed(2);
+                updateDisplay();
+            });
+
+            document.getElementById('w3Slider').addEventListener('input', (e) => {
+                params.w3 = parseFloat(e.target.value);
+                document.getElementById('w3Value').textContent = params.w3.toFixed(2);
+                updateDisplay();
+            });
+
+            // Bias slider
+            document.getElementById('biasSlider').addEventListener('input', (e) => {
+                params.bias = parseFloat(e.target.value);
+                document.getElementById('biasValue').textContent = params.bias.toFixed(2);
+                updateDisplay();
+            });
+
+            // Threshold slider
+            document.getElementById('thresholdSlider').addEventListener('input', (e) => {
+                params.threshold = parseFloat(e.target.value);
+                document.getElementById('thresholdValue').textContent = params.threshold.toFixed(2);
+                updateDisplay();
+            });
+        }
+
+        function toggleControls() {
+            document.getElementById('controls').classList.toggle('visible');
+        }
+
+        window.addEventListener('resize', init);
+
+        // Initialize
+        init();
+        setupControls();
+        updateDisplay();
+        animate();
+    </script>
+</body>
+</html>
