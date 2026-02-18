@@ -289,84 +289,203 @@
             selector.style.backgroundColor = rgbToString(rgb);
         }
 
-        // ===== NATURE SCENE =====
-        function drawMountains(ctx, w, h, baseY, color) {
-            ctx.fillStyle = color;
+        // ===== STAGE ELEMENTS =====
+        function drawCeiling(ctx, w, h, ceilingY) {
+            // Ceiling base
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(0, 0, w, ceilingY);
+
+            // Ceiling panels/beams
+            ctx.fillStyle = '#252525';
+            const beamWidth = w / 8;
+            for (let i = 0; i < 8; i++) {
+                ctx.fillRect(i * beamWidth, 0, beamWidth - 2, ceilingY);
+            }
+
+            // Lighting rig bar
+            ctx.fillStyle = '#333';
+            ctx.fillRect(0, ceilingY - 8, w, 8);
+            ctx.fillStyle = '#444';
+            ctx.fillRect(0, ceilingY - 6, w, 2);
+        }
+
+        function drawCurtains(ctx, w, h, ceilingY, floorY) {
+            const curtainWidth = w * 0.12;
+            const folds = 8;
+            const foldWidth = curtainWidth / folds;
+
+            // Left curtain
+            for (let i = 0; i < folds; i++) {
+                const x = i * foldWidth;
+                const shade = i % 2 === 0 ? '#4a1a1a' : '#3a0a0a';
+                ctx.fillStyle = shade;
+                ctx.beginPath();
+                ctx.moveTo(x, ceilingY);
+                ctx.lineTo(x + foldWidth, ceilingY);
+                ctx.lineTo(x + foldWidth, floorY);
+                ctx.lineTo(x, floorY);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // Right curtain
+            for (let i = 0; i < folds; i++) {
+                const x = w - curtainWidth + i * foldWidth;
+                const shade = i % 2 === 0 ? '#4a1a1a' : '#3a0a0a';
+                ctx.fillStyle = shade;
+                ctx.beginPath();
+                ctx.moveTo(x, ceilingY);
+                ctx.lineTo(x + foldWidth, ceilingY);
+                ctx.lineTo(x + foldWidth, floorY);
+                ctx.lineTo(x, floorY);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // Curtain valance (top drape)
+            ctx.fillStyle = '#5a2020';
             ctx.beginPath();
-            ctx.moveTo(0, baseY);
-
-            // Generate mountain peaks
-            const peaks = [
-                { x: w * 0.1, y: baseY - h * 0.3 },
-                { x: w * 0.25, y: baseY - h * 0.45 },
-                { x: w * 0.4, y: baseY - h * 0.35 },
-                { x: w * 0.55, y: baseY - h * 0.5 },
-                { x: w * 0.7, y: baseY - h * 0.38 },
-                { x: w * 0.85, y: baseY - h * 0.42 },
-            ];
-
-            peaks.forEach((peak, i) => {
-                if (i === 0) ctx.lineTo(peak.x - w * 0.08, baseY);
-                ctx.lineTo(peak.x, peak.y);
-                ctx.lineTo(peak.x + w * 0.08, baseY);
-            });
-
-            ctx.lineTo(w, baseY);
+            ctx.moveTo(0, ceilingY);
+            ctx.lineTo(w, ceilingY);
+            ctx.lineTo(w, ceilingY + 25);
+            for (let x = w; x >= 0; x -= 40) {
+                ctx.quadraticCurveTo(x - 20, ceilingY + 40, x - 40, ceilingY + 25);
+            }
             ctx.closePath();
+            ctx.fill();
+
+            // Gold trim
+            ctx.strokeStyle = '#8B7500';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(0, ceilingY + 25);
+            for (let x = 0; x <= w; x += 40) {
+                ctx.quadraticCurveTo(x + 20, ceilingY + 40, x + 40, ceilingY + 25);
+            }
+            ctx.stroke();
+        }
+
+        function drawHardwoodFloor(ctx, w, h, floorY) {
+            const plankHeight = 20;
+            const plankWidth = 80;
+
+            // Floor base with perspective gradient
+            const floorGradient = ctx.createLinearGradient(0, floorY, 0, h);
+            floorGradient.addColorStop(0, '#3d2817');
+            floorGradient.addColorStop(1, '#2a1a0f');
+            ctx.fillStyle = floorGradient;
+            ctx.fillRect(0, floorY, w, h - floorY);
+
+            // Draw planks
+            let row = 0;
+            for (let y = floorY; y < h; y += plankHeight) {
+                const offset = (row % 2) * (plankWidth / 2);
+                for (let x = -plankWidth + offset; x < w; x += plankWidth) {
+                    // Plank variation
+                    const brightness = 0.9 + Math.random() * 0.2;
+                    const r = Math.floor(61 * brightness);
+                    const g = Math.floor(40 * brightness);
+                    const b = Math.floor(23 * brightness);
+                    ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                    ctx.fillRect(x, y, plankWidth - 2, plankHeight - 1);
+
+                    // Wood grain
+                    ctx.strokeStyle = `rgba(0, 0, 0, 0.1)`;
+                    ctx.lineWidth = 1;
+                    for (let g = 0; g < 3; g++) {
+                        ctx.beginPath();
+                        ctx.moveTo(x, y + 5 + g * 5);
+                        ctx.lineTo(x + plankWidth - 2, y + 5 + g * 5);
+                        ctx.stroke();
+                    }
+                }
+                row++;
+            }
+        }
+
+        function drawBackdrop(ctx, w, h, ceilingY, floorY) {
+            const curtainWidth = w * 0.12;
+            const backdropX = curtainWidth;
+            const backdropW = w - curtainWidth * 2;
+
+            // Night sky backdrop
+            const skyGradient = ctx.createLinearGradient(0, ceilingY, 0, floorY);
+            skyGradient.addColorStop(0, '#0a0a2a');
+            skyGradient.addColorStop(0.5, '#1a1a4a');
+            skyGradient.addColorStop(1, '#0f0f3a');
+            ctx.fillStyle = skyGradient;
+            ctx.fillRect(backdropX, ceilingY + 30, backdropW, floorY - ceilingY - 30);
+
+            // Stars on backdrop
+            ctx.fillStyle = 'rgba(255,255,255,0.6)';
+            for (let i = 0; i < 40; i++) {
+                const sx = backdropX + (i * 137.5) % backdropW;
+                const sy = ceilingY + 50 + (i * 89.3) % ((floorY - ceilingY) * 0.4);
+                const size = (i % 3) + 1;
+                ctx.beginPath();
+                ctx.arc(sx, sy, size * 0.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Moon
+            ctx.fillStyle = 'rgba(255, 255, 220, 0.9)';
+            ctx.beginPath();
+            ctx.arc(w * 0.7, ceilingY + 80, 25, 0, Math.PI * 2);
             ctx.fill();
         }
 
-        function drawTrees(ctx, w, h, groundY) {
+        function drawTreeProps(ctx, w, h, floorY, colors) {
+            const curtainWidth = w * 0.12;
             const treePositions = [
-                { x: w * 0.05, scale: 0.8 },
-                { x: w * 0.12, scale: 1.0 },
-                { x: w * 0.2, scale: 0.7 },
-                { x: w * 0.78, scale: 0.9 },
-                { x: w * 0.85, scale: 1.1 },
-                { x: w * 0.93, scale: 0.75 },
+                { x: curtainWidth + w * 0.08, scale: 0.9 },
+                { x: curtainWidth + w * 0.18, scale: 1.1 },
+                { x: w - curtainWidth - w * 0.08, scale: 0.85 },
+                { x: w - curtainWidth - w * 0.18, scale: 1.0 },
             ];
 
-            treePositions.forEach(tree => {
-                const treeH = h * 0.25 * tree.scale;
-                const treeW = treeH * 0.4;
+            treePositions.forEach((tree, idx) => {
+                const treeH = h * 0.35 * tree.scale;
+                const treeW = treeH * 0.35;
                 const x = tree.x;
-                const y = groundY;
+                const y = floorY;
 
-                ctx.fillStyle = '#0a0a0f';
+                // Determine which light affects this tree
+                const isLeft = idx < 2;
+                const lightColor = isLeft ? colors.left : colors.right;
 
-                // Trunk
-                ctx.fillRect(x - treeW * 0.1, y - treeH * 0.3, treeW * 0.2, treeH * 0.3);
+                // Tree base color (dark green)
+                const baseR = 20, baseG = 40, baseB = 25;
 
-                // Foliage layers
-                for (let i = 0; i < 3; i++) {
+                // Trunk with lighting
+                const trunkLight = 0.3;
+                ctx.fillStyle = `rgb(${40 + lightColor[0] * trunkLight * 0.3}, ${30 + lightColor[1] * trunkLight * 0.1}, ${20 + lightColor[2] * trunkLight * 0.1})`;
+                ctx.fillRect(x - treeW * 0.08, y - treeH * 0.25, treeW * 0.16, treeH * 0.25);
+
+                // Foliage layers with front lighting
+                for (let i = 0; i < 4; i++) {
+                    const layerY = y - treeH * 0.2 - i * treeH * 0.2;
+                    const layerW = treeW * (1 - i * 0.15);
+
+                    // Lit side (front)
+                    const lightIntensity = 0.4 - i * 0.05;
+                    const r = Math.min(255, baseR + lightColor[0] * lightIntensity);
+                    const g = Math.min(255, baseG + lightColor[1] * lightIntensity);
+                    const b = Math.min(255, baseB + lightColor[2] * lightIntensity);
+
+                    ctx.fillStyle = `rgb(${Math.floor(r)}, ${Math.floor(g)}, ${Math.floor(b)})`;
                     ctx.beginPath();
-                    const layerY = y - treeH * 0.25 - i * treeH * 0.25;
-                    const layerW = treeW * (1 - i * 0.2);
                     ctx.moveTo(x - layerW, layerY);
-                    ctx.lineTo(x, layerY - treeH * 0.35);
+                    ctx.lineTo(x, layerY - treeH * 0.25);
                     ctx.lineTo(x + layerW, layerY);
                     ctx.closePath();
                     ctx.fill();
+
+                    // Highlight edge
+                    ctx.strokeStyle = `rgba(${lightColor[0]}, ${lightColor[1]}, ${lightColor[2]}, 0.3)`;
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
                 }
             });
-        }
-
-        function drawGround(ctx, w, h, groundY) {
-            // Grass/ground silhouette
-            ctx.fillStyle = '#050508';
-            ctx.beginPath();
-            ctx.moveTo(0, groundY);
-
-            // Wavy grass line
-            for (let x = 0; x <= w; x += 20) {
-                const y = groundY + Math.sin(x * 0.05) * 5;
-                ctx.lineTo(x, y);
-            }
-
-            ctx.lineTo(w, h);
-            ctx.lineTo(0, h);
-            ctx.closePath();
-            ctx.fill();
         }
 
         // ===== SPOTLIGHT RENDERING =====
@@ -443,26 +562,12 @@
         function drawScene() {
             const w = stage.width;
             const h = stage.height;
-            const groundY = h * 0.75;
+            const ceilingY = h * 0.12;
+            const floorY = h * 0.78;
 
-            // Sky gradient
-            const skyGradient = stageCtx.createLinearGradient(0, 0, 0, h);
-            skyGradient.addColorStop(0, '#0a0a1a');
-            skyGradient.addColorStop(0.5, '#1a1a3a');
-            skyGradient.addColorStop(1, '#0f0f2a');
-            stageCtx.fillStyle = skyGradient;
+            // Clear canvas
+            stageCtx.fillStyle = '#000';
             stageCtx.fillRect(0, 0, w, h);
-
-            // Stars
-            stageCtx.fillStyle = 'rgba(255,255,255,0.5)';
-            for (let i = 0; i < 50; i++) {
-                const sx = (i * 137.5) % w;
-                const sy = (i * 89.3) % (h * 0.5);
-                const size = (i % 3) + 1;
-                stageCtx.beginPath();
-                stageCtx.arc(sx, sy, size * 0.5, 0, Math.PI * 2);
-                stageCtx.fill();
-            }
 
             // Get current colors
             const mainColor = hslToRgb(selectedHue, 100, 50);
@@ -470,27 +575,59 @@
             const leftColor = harmony.left[0];
             const rightColor = harmony.right[0];
 
-            // Draw spotlights (before scenery for proper layering)
-            drawSpotlight(stageCtx, w * 0.15, 30, w * 0.3, groundY, leftColor);
-            drawSpotlight(stageCtx, w * 0.5, 20, w * 0.5, groundY - 50, mainColor, 1.2);
-            drawSpotlight(stageCtx, w * 0.85, 30, w * 0.7, groundY, rightColor);
+            // Draw backdrop (behind everything)
+            drawBackdrop(stageCtx, w, h, ceilingY, floorY);
 
-            // Background mountains
-            drawMountains(stageCtx, w, h, groundY + 30, '#0f0f18');
+            // Draw spotlight beams onto stage (front lighting effect)
+            // Spotlights shine from ceiling onto the floor/trees
+            const curtainWidth = w * 0.12;
+            drawSpotlight(stageCtx, w * 0.25, ceilingY + 10, curtainWidth + w * 0.12, floorY - 30, leftColor, 0.9);
+            drawSpotlight(stageCtx, w * 0.5, ceilingY + 5, w * 0.5, floorY - 20, mainColor, 1.2);
+            drawSpotlight(stageCtx, w * 0.75, ceilingY + 10, w - curtainWidth - w * 0.12, floorY - 30, rightColor, 0.9);
 
-            // Foreground mountains
-            drawMountains(stageCtx, w, h, groundY + 50, '#080810');
+            // Draw tree props (illuminated by front lights)
+            drawTreeProps(stageCtx, w, h, floorY, { main: mainColor, left: leftColor, right: rightColor });
 
-            // Trees
-            drawTrees(stageCtx, w, h, groundY);
+            // Draw hardwood floor
+            drawHardwoodFloor(stageCtx, w, h, floorY);
 
-            // Ground
-            drawGround(stageCtx, w, h, groundY);
+            // Draw floor light pools
+            stageCtx.save();
+            stageCtx.globalCompositeOperation = 'lighter';
 
-            // Spotlight fixtures at top
-            drawSpotlightFixture(stageCtx, w * 0.15, 25, leftColor);
-            drawSpotlightFixture(stageCtx, w * 0.5, 15, mainColor);
-            drawSpotlightFixture(stageCtx, w * 0.85, 25, rightColor);
+            // Left pool
+            const leftPoolGrad = stageCtx.createRadialGradient(curtainWidth + w * 0.12, floorY + 10, 0, curtainWidth + w * 0.12, floorY + 10, w * 0.15);
+            leftPoolGrad.addColorStop(0, `rgba(${leftColor[0]}, ${leftColor[1]}, ${leftColor[2]}, 0.3)`);
+            leftPoolGrad.addColorStop(1, 'rgba(0,0,0,0)');
+            stageCtx.fillStyle = leftPoolGrad;
+            stageCtx.fillRect(0, floorY, w, h - floorY);
+
+            // Center pool
+            const centerPoolGrad = stageCtx.createRadialGradient(w * 0.5, floorY + 10, 0, w * 0.5, floorY + 10, w * 0.18);
+            centerPoolGrad.addColorStop(0, `rgba(${mainColor[0]}, ${mainColor[1]}, ${mainColor[2]}, 0.35)`);
+            centerPoolGrad.addColorStop(1, 'rgba(0,0,0,0)');
+            stageCtx.fillStyle = centerPoolGrad;
+            stageCtx.fillRect(0, floorY, w, h - floorY);
+
+            // Right pool
+            const rightPoolGrad = stageCtx.createRadialGradient(w - curtainWidth - w * 0.12, floorY + 10, 0, w - curtainWidth - w * 0.12, floorY + 10, w * 0.15);
+            rightPoolGrad.addColorStop(0, `rgba(${rightColor[0]}, ${rightColor[1]}, ${rightColor[2]}, 0.3)`);
+            rightPoolGrad.addColorStop(1, 'rgba(0,0,0,0)');
+            stageCtx.fillStyle = rightPoolGrad;
+            stageCtx.fillRect(0, floorY, w, h - floorY);
+
+            stageCtx.restore();
+
+            // Draw curtains (in front of backdrop, beside stage)
+            drawCurtains(stageCtx, w, h, ceilingY, floorY);
+
+            // Draw ceiling with lighting rig
+            drawCeiling(stageCtx, w, h, ceilingY);
+
+            // Spotlight fixtures on ceiling
+            drawSpotlightFixture(stageCtx, w * 0.25, ceilingY - 15, leftColor);
+            drawSpotlightFixture(stageCtx, w * 0.5, ceilingY - 18, mainColor);
+            drawSpotlightFixture(stageCtx, w * 0.75, ceilingY - 15, rightColor);
 
             // Update swatches
             document.getElementById('main-swatch').style.backgroundColor = rgbToString(mainColor);
