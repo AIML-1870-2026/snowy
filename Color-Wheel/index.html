@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Wheel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #1a1a2e;
+            font-family: system-ui, sans-serif;
+        }
+        canvas {
+            border-radius: 50%;
+            box-shadow: 0 0 40px rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <script>
+        // Color Wheel - Interactive Visualization
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        const size = Math.min(window.innerWidth, window.innerHeight) * 0.8;
+        canvas.width = size;
+        canvas.height = size;
+
+        // Placeholder - implementation coming soon
+        ctx.fillStyle = '#333';
+        ctx.fillRect(0, 0, size, size);
+        ctx.fillStyle = '#fff';
+        ctx.font = '24px system-ui';
+        ctx.textAlign = 'center';
+        ctx.fillText('Color Wheel', size / 2, size / 2);
+    </script>
+</body>
+</html>
