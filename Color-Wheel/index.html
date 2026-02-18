@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Color Wheel</title>
+    <title>Color Wheel - Stage Lighting</title>
     <style>
         * {
             margin: 0;
@@ -12,36 +12,555 @@
         }
         body {
             display: flex;
-            justify-content: center;
-            align-items: center;
+            flex-direction: column;
             min-height: 100vh;
-            background: #1a1a2e;
-            font-family: system-ui, sans-serif;
+            background: #0a0a0f;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
         }
-        canvas {
+
+        /* Stage Area */
+        #stage-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+        #stage {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Control Panel */
+        #control-panel {
+            background: linear-gradient(to bottom, #1a1a2e, #0f0f1a);
+            border-top: 3px solid #333;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
+        }
+
+        /* Control Panel Frame */
+        .panel-section {
+            background: #12121f;
+            border: 2px solid #2a2a4a;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+        }
+        .panel-label {
+            color: #6a6a8a;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        /* Color Wheel */
+        #wheel-container {
+            position: relative;
+            width: 150px;
+            height: 150px;
+        }
+        #color-wheel {
+            cursor: crosshair;
             border-radius: 50%;
-            box-shadow: 0 0 40px rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 20px rgba(255,255,255,0.1);
+        }
+        #wheel-selector {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border: 2px solid white;
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+
+        /* Harmony Buttons */
+        .harmony-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .harmony-btn {
+            background: #1a1a2e;
+            border: 1px solid #3a3a5a;
+            color: #8a8aaa;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+        .harmony-btn:hover {
+            background: #2a2a4e;
+            border-color: #5a5a7a;
+        }
+        .harmony-btn.active {
+            background: #3a3a6e;
+            border-color: #7a7aaa;
+            color: #fff;
+            box-shadow: 0 0 10px rgba(100, 100, 200, 0.3);
+        }
+
+        /* Color Preview */
+        .color-preview {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .preview-swatch {
+            width: 30px;
+            height: 30px;
+            border-radius: 5px;
+            border: 2px solid #3a3a5a;
+        }
+        #main-swatch { box-shadow: 0 0 15px currentColor; }
+
+        /* LED Indicator */
+        .led-strip {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        .led {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #333;
+        }
+        .led.on {
+            background: #0f0;
+            box-shadow: 0 0 5px #0f0;
         }
     </style>
 </head>
 <body>
-    <canvas id="canvas"></canvas>
+    <div id="stage-container">
+        <canvas id="stage"></canvas>
+    </div>
+
+    <div id="control-panel">
+        <div class="panel-section">
+            <div class="panel-label">Main Spotlight</div>
+            <div id="wheel-container">
+                <canvas id="color-wheel" width="150" height="150"></canvas>
+                <div id="wheel-selector"></div>
+            </div>
+            <div class="led-strip">
+                <div class="led on"></div>
+                <div class="led on"></div>
+                <div class="led on"></div>
+            </div>
+        </div>
+
+        <div class="panel-section">
+            <div class="panel-label">Harmony Mode</div>
+            <div class="harmony-buttons">
+                <button class="harmony-btn active" data-harmony="complementary">Complementary</button>
+                <button class="harmony-btn" data-harmony="analogous">Analogous</button>
+                <button class="harmony-btn" data-harmony="triadic">Triadic</button>
+                <button class="harmony-btn" data-harmony="split">Split-Complementary</button>
+            </div>
+        </div>
+
+        <div class="panel-section">
+            <div class="panel-label">Active Colors</div>
+            <div class="color-preview">
+                <div class="preview-swatch" id="left-swatch"></div>
+                <div class="preview-swatch" id="main-swatch"></div>
+                <div class="preview-swatch" id="right-swatch"></div>
+            </div>
+            <div class="led-strip">
+                <div class="led on"></div>
+                <div class="led"></div>
+                <div class="led on"></div>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // Color Wheel - Interactive Visualization
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
+        // ===== CONFIGURATION =====
+        let selectedHue = 0;
+        let selectedSat = 100;
+        let harmonyType = 'complementary';
 
-        const size = Math.min(window.innerWidth, window.innerHeight) * 0.8;
-        canvas.width = size;
-        canvas.height = size;
+        // ===== CANVAS SETUP =====
+        const stage = document.getElementById('stage');
+        const stageCtx = stage.getContext('2d');
+        const wheel = document.getElementById('color-wheel');
+        const wheelCtx = wheel.getContext('2d');
+        const selector = document.getElementById('wheel-selector');
 
-        // Placeholder - implementation coming soon
-        ctx.fillStyle = '#333';
-        ctx.fillRect(0, 0, size, size);
-        ctx.fillStyle = '#fff';
-        ctx.font = '24px system-ui';
-        ctx.textAlign = 'center';
-        ctx.fillText('Color Wheel', size / 2, size / 2);
+        function resizeStage() {
+            const container = document.getElementById('stage-container');
+            stage.width = container.clientWidth;
+            stage.height = container.clientHeight;
+            drawScene();
+        }
+
+        // ===== COLOR UTILITIES =====
+        function hslToRgb(h, s, l) {
+            s /= 100;
+            l /= 100;
+            const k = n => (n + h / 30) % 12;
+            const a = s * Math.min(l, 1 - l);
+            const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+            return [Math.round(f(0) * 255), Math.round(f(8) * 255), Math.round(f(4) * 255)];
+        }
+
+        function rgbToString(rgb) {
+            return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+        }
+
+        function getHarmonyColors(hue, type) {
+            const colors = { left: [], right: [] };
+
+            switch(type) {
+                case 'complementary':
+                    colors.left = [hslToRgb((hue + 180) % 360, 100, 50)];
+                    colors.right = [hslToRgb((hue + 180) % 360, 100, 50)];
+                    break;
+                case 'analogous':
+                    colors.left = [hslToRgb((hue + 330) % 360, 100, 50)];
+                    colors.right = [hslToRgb((hue + 30) % 360, 100, 50)];
+                    break;
+                case 'triadic':
+                    colors.left = [hslToRgb((hue + 120) % 360, 100, 50)];
+                    colors.right = [hslToRgb((hue + 240) % 360, 100, 50)];
+                    break;
+                case 'split':
+                    colors.left = [hslToRgb((hue + 150) % 360, 100, 50)];
+                    colors.right = [hslToRgb((hue + 210) % 360, 100, 50)];
+                    break;
+            }
+            return colors;
+        }
+
+        // ===== COLOR WHEEL =====
+        function drawColorWheel() {
+            const cx = 75, cy = 75, radius = 70;
+
+            // Draw hue wheel
+            for (let angle = 0; angle < 360; angle++) {
+                const startAngle = (angle - 1) * Math.PI / 180;
+                const endAngle = (angle + 1) * Math.PI / 180;
+
+                wheelCtx.beginPath();
+                wheelCtx.moveTo(cx, cy);
+                wheelCtx.arc(cx, cy, radius, startAngle, endAngle);
+                wheelCtx.closePath();
+
+                const rgb = hslToRgb(angle, 100, 50);
+                wheelCtx.fillStyle = rgbToString(rgb);
+                wheelCtx.fill();
+            }
+
+            // Center gradient for saturation/lightness
+            const gradient = wheelCtx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+            gradient.addColorStop(0, 'rgba(255,255,255,0.8)');
+            gradient.addColorStop(0.5, 'rgba(255,255,255,0)');
+            gradient.addColorStop(1, 'rgba(0,0,0,0)');
+            wheelCtx.fillStyle = gradient;
+            wheelCtx.beginPath();
+            wheelCtx.arc(cx, cy, radius, 0, Math.PI * 2);
+            wheelCtx.fill();
+        }
+
+        function updateSelector() {
+            const cx = 75, cy = 75;
+            const dist = (100 - selectedSat) * 0.5;
+            const angle = selectedHue * Math.PI / 180;
+            const x = cx + Math.cos(angle) * (60 - dist * 0.5);
+            const y = cy + Math.sin(angle) * (60 - dist * 0.5);
+            selector.style.left = x + 'px';
+            selector.style.top = y + 'px';
+
+            const rgb = hslToRgb(selectedHue, 100, 50);
+            selector.style.backgroundColor = rgbToString(rgb);
+        }
+
+        // ===== NATURE SCENE =====
+        function drawMountains(ctx, w, h, baseY, color) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(0, baseY);
+
+            // Generate mountain peaks
+            const peaks = [
+                { x: w * 0.1, y: baseY - h * 0.3 },
+                { x: w * 0.25, y: baseY - h * 0.45 },
+                { x: w * 0.4, y: baseY - h * 0.35 },
+                { x: w * 0.55, y: baseY - h * 0.5 },
+                { x: w * 0.7, y: baseY - h * 0.38 },
+                { x: w * 0.85, y: baseY - h * 0.42 },
+            ];
+
+            peaks.forEach((peak, i) => {
+                if (i === 0) ctx.lineTo(peak.x - w * 0.08, baseY);
+                ctx.lineTo(peak.x, peak.y);
+                ctx.lineTo(peak.x + w * 0.08, baseY);
+            });
+
+            ctx.lineTo(w, baseY);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function drawTrees(ctx, w, h, groundY) {
+            const treePositions = [
+                { x: w * 0.05, scale: 0.8 },
+                { x: w * 0.12, scale: 1.0 },
+                { x: w * 0.2, scale: 0.7 },
+                { x: w * 0.78, scale: 0.9 },
+                { x: w * 0.85, scale: 1.1 },
+                { x: w * 0.93, scale: 0.75 },
+            ];
+
+            treePositions.forEach(tree => {
+                const treeH = h * 0.25 * tree.scale;
+                const treeW = treeH * 0.4;
+                const x = tree.x;
+                const y = groundY;
+
+                ctx.fillStyle = '#0a0a0f';
+
+                // Trunk
+                ctx.fillRect(x - treeW * 0.1, y - treeH * 0.3, treeW * 0.2, treeH * 0.3);
+
+                // Foliage layers
+                for (let i = 0; i < 3; i++) {
+                    ctx.beginPath();
+                    const layerY = y - treeH * 0.25 - i * treeH * 0.25;
+                    const layerW = treeW * (1 - i * 0.2);
+                    ctx.moveTo(x - layerW, layerY);
+                    ctx.lineTo(x, layerY - treeH * 0.35);
+                    ctx.lineTo(x + layerW, layerY);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            });
+        }
+
+        function drawGround(ctx, w, h, groundY) {
+            // Grass/ground silhouette
+            ctx.fillStyle = '#050508';
+            ctx.beginPath();
+            ctx.moveTo(0, groundY);
+
+            // Wavy grass line
+            for (let x = 0; x <= w; x += 20) {
+                const y = groundY + Math.sin(x * 0.05) * 5;
+                ctx.lineTo(x, y);
+            }
+
+            ctx.lineTo(w, h);
+            ctx.lineTo(0, h);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // ===== SPOTLIGHT RENDERING =====
+        function drawSpotlight(ctx, x, y, targetX, targetY, color, intensity = 1) {
+            const rgb = color;
+            const spreadAngle = 0.3;
+            const length = Math.sqrt((targetX - x) ** 2 + (targetY - y) ** 2);
+            const angle = Math.atan2(targetY - y, targetX - x);
+
+            // Light beam
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+
+            const gradient = ctx.createRadialGradient(
+                targetX, targetY, 0,
+                targetX, targetY, length * 0.6
+            );
+            gradient.addColorStop(0, `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${0.6 * intensity})`);
+            gradient.addColorStop(0.3, `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${0.3 * intensity})`);
+            gradient.addColorStop(1, 'rgba(0,0,0,0)');
+
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(
+                targetX + Math.cos(angle + spreadAngle) * length * 0.5,
+                targetY + Math.sin(angle + spreadAngle) * length * 0.3
+            );
+            ctx.lineTo(
+                targetX + Math.cos(angle - spreadAngle) * length * 0.5,
+                targetY + Math.sin(angle - spreadAngle) * length * 0.3
+            );
+            ctx.closePath();
+            ctx.fillStyle = gradient;
+            ctx.fill();
+
+            // Ground pool of light
+            const poolGradient = ctx.createRadialGradient(
+                targetX, targetY, 0,
+                targetX, targetY, length * 0.4
+            );
+            poolGradient.addColorStop(0, `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${0.5 * intensity})`);
+            poolGradient.addColorStop(0.5, `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${0.2 * intensity})`);
+            poolGradient.addColorStop(1, 'rgba(0,0,0,0)');
+
+            ctx.beginPath();
+            ctx.ellipse(targetX, targetY + 20, length * 0.35, length * 0.15, 0, 0, Math.PI * 2);
+            ctx.fillStyle = poolGradient;
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        function drawSpotlightFixture(ctx, x, y, color) {
+            // Housing
+            ctx.fillStyle = '#222';
+            ctx.beginPath();
+            ctx.ellipse(x, y, 15, 10, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Lens glow
+            ctx.fillStyle = `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.8)`;
+            ctx.beginPath();
+            ctx.arc(x, y + 5, 8, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Lens highlight
+            ctx.fillStyle = `rgba(255, 255, 255, 0.3)`;
+            ctx.beginPath();
+            ctx.arc(x - 2, y + 3, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // ===== MAIN SCENE =====
+        function drawScene() {
+            const w = stage.width;
+            const h = stage.height;
+            const groundY = h * 0.75;
+
+            // Sky gradient
+            const skyGradient = stageCtx.createLinearGradient(0, 0, 0, h);
+            skyGradient.addColorStop(0, '#0a0a1a');
+            skyGradient.addColorStop(0.5, '#1a1a3a');
+            skyGradient.addColorStop(1, '#0f0f2a');
+            stageCtx.fillStyle = skyGradient;
+            stageCtx.fillRect(0, 0, w, h);
+
+            // Stars
+            stageCtx.fillStyle = 'rgba(255,255,255,0.5)';
+            for (let i = 0; i < 50; i++) {
+                const sx = (i * 137.5) % w;
+                const sy = (i * 89.3) % (h * 0.5);
+                const size = (i % 3) + 1;
+                stageCtx.beginPath();
+                stageCtx.arc(sx, sy, size * 0.5, 0, Math.PI * 2);
+                stageCtx.fill();
+            }
+
+            // Get current colors
+            const mainColor = hslToRgb(selectedHue, 100, 50);
+            const harmony = getHarmonyColors(selectedHue, harmonyType);
+            const leftColor = harmony.left[0];
+            const rightColor = harmony.right[0];
+
+            // Draw spotlights (before scenery for proper layering)
+            drawSpotlight(stageCtx, w * 0.15, 30, w * 0.3, groundY, leftColor);
+            drawSpotlight(stageCtx, w * 0.5, 20, w * 0.5, groundY - 50, mainColor, 1.2);
+            drawSpotlight(stageCtx, w * 0.85, 30, w * 0.7, groundY, rightColor);
+
+            // Background mountains
+            drawMountains(stageCtx, w, h, groundY + 30, '#0f0f18');
+
+            // Foreground mountains
+            drawMountains(stageCtx, w, h, groundY + 50, '#080810');
+
+            // Trees
+            drawTrees(stageCtx, w, h, groundY);
+
+            // Ground
+            drawGround(stageCtx, w, h, groundY);
+
+            // Spotlight fixtures at top
+            drawSpotlightFixture(stageCtx, w * 0.15, 25, leftColor);
+            drawSpotlightFixture(stageCtx, w * 0.5, 15, mainColor);
+            drawSpotlightFixture(stageCtx, w * 0.85, 25, rightColor);
+
+            // Update swatches
+            document.getElementById('main-swatch').style.backgroundColor = rgbToString(mainColor);
+            document.getElementById('left-swatch').style.backgroundColor = rgbToString(leftColor);
+            document.getElementById('right-swatch').style.backgroundColor = rgbToString(rightColor);
+        }
+
+        // ===== EVENT HANDLERS =====
+        function handleWheelInteraction(e) {
+            const rect = wheel.getBoundingClientRect();
+            const x = e.clientX - rect.left - 75;
+            const y = e.clientY - rect.top - 75;
+            const dist = Math.sqrt(x * x + y * y);
+
+            if (dist <= 70) {
+                selectedHue = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+                selectedSat = Math.min(100, (dist / 70) * 100);
+                updateSelector();
+                drawScene();
+            }
+        }
+
+        let isDragging = false;
+
+        wheel.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            handleWheelInteraction(e);
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (isDragging) handleWheelInteraction(e);
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        // Touch support
+        wheel.addEventListener('touchstart', (e) => {
+            isDragging = true;
+            handleWheelInteraction(e.touches[0]);
+        });
+
+        wheel.addEventListener('touchmove', (e) => {
+            if (isDragging) {
+                e.preventDefault();
+                handleWheelInteraction(e.touches[0]);
+            }
+        });
+
+        wheel.addEventListener('touchend', () => {
+            isDragging = false;
+        });
+
+        // Harmony buttons
+        document.querySelectorAll('.harmony-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.harmony-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                harmonyType = btn.dataset.harmony;
+                drawScene();
+            });
+        });
+
+        // ===== INITIALIZATION =====
+        window.addEventListener('resize', resizeStage);
+        resizeStage();
+        drawColorWheel();
+        updateSelector();
+        drawScene();
     </script>
 </body>
 </html>
