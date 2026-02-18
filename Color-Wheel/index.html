@@ -15,7 +15,7 @@
             flex-direction: column;
             min-height: 100vh;
             background: #0a0a0f;
-            font-family: 'Courier New', monospace;
+            font-family: 'Times New Roman', Times, serif;
             overflow: hidden;
         }
 
@@ -59,26 +59,79 @@
             text-align: center;
         }
 
-        /* Color Wheel */
-        #wheel-container {
-            position: relative;
-            width: 150px;
-            height: 150px;
+        /* RGB Sliders */
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 180px;
         }
-        #color-wheel {
-            cursor: crosshair;
-            border-radius: 50%;
-            box-shadow: 0 0 20px rgba(255,255,255,0.1);
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
-        #wheel-selector {
-            position: absolute;
-            width: 12px;
+        .slider-label {
+            width: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .slider-label.red { color: #ff4444; }
+        .slider-label.green { color: #44ff44; }
+        .slider-label.blue { color: #4444ff; }
+
+        .color-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            flex: 1;
             height: 12px;
-            border: 2px solid white;
+            border-radius: 6px;
+            outline: none;
+            cursor: pointer;
+        }
+        .color-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
             border-radius: 50%;
-            pointer-events: none;
-            transform: translate(-50%, -50%);
-            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+            background: #fff;
+            border: 2px solid #333;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        .color-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #fff;
+            border: 2px solid #333;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        #red-slider {
+            background: linear-gradient(to right, #000, #ff0000);
+        }
+        #green-slider {
+            background: linear-gradient(to right, #000, #00ff00);
+        }
+        #blue-slider {
+            background: linear-gradient(to right, #000, #0000ff);
+        }
+        .slider-value {
+            width: 36px;
+            font-size: 12px;
+            color: #aaa;
+            text-align: right;
+            font-family: 'Times New Roman', Times, serif;
+        }
+        .color-preview-box {
+            width: 100%;
+            height: 30px;
+            border-radius: 5px;
+            border: 2px solid #3a3a5a;
+            margin-top: 5px;
         }
 
         /* Harmony Buttons */
@@ -151,20 +204,29 @@
 
     <div id="control-panel">
         <div class="panel-section">
-            <div class="panel-label">Main Spotlight</div>
-            <div id="wheel-container">
-                <canvas id="color-wheel" width="150" height="150"></canvas>
-                <div id="wheel-selector"></div>
-            </div>
-            <div class="led-strip">
-                <div class="led on"></div>
-                <div class="led on"></div>
-                <div class="led on"></div>
+            <div class="panel-label">Main Spotlight - RGB</div>
+            <div class="slider-container">
+                <div class="slider-row">
+                    <span class="slider-label red">R</span>
+                    <input type="range" id="red-slider" class="color-slider" min="0" max="255" value="255">
+                    <span class="slider-value" id="red-value">255</span>
+                </div>
+                <div class="slider-row">
+                    <span class="slider-label green">G</span>
+                    <input type="range" id="green-slider" class="color-slider" min="0" max="255" value="0">
+                    <span class="slider-value" id="green-value">0</span>
+                </div>
+                <div class="slider-row">
+                    <span class="slider-label blue">B</span>
+                    <input type="range" id="blue-slider" class="color-slider" min="0" max="255" value="0">
+                    <span class="slider-value" id="blue-value">0</span>
+                </div>
+                <div class="color-preview-box" id="main-preview"></div>
             </div>
         </div>
 
         <div class="panel-section">
-            <div class="panel-label">Harmony Mode</div>
+            <div class="panel-label">Harmony Mode for Side Spotlights</div>
             <div class="harmony-buttons">
                 <button class="harmony-btn active" data-harmony="complementary">Complementary</button>
                 <button class="harmony-btn" data-harmony="analogous">Analogous</button>
@@ -190,16 +252,23 @@
 
     <script>
         // ===== CONFIGURATION =====
-        let selectedHue = 0;
-        let selectedSat = 100;
+        let selectedR = 255;
+        let selectedG = 0;
+        let selectedB = 0;
         let harmonyType = 'complementary';
 
         // ===== CANVAS SETUP =====
         const stage = document.getElementById('stage');
         const stageCtx = stage.getContext('2d');
-        const wheel = document.getElementById('color-wheel');
-        const wheelCtx = wheel.getContext('2d');
-        const selector = document.getElementById('wheel-selector');
+
+        // RGB Sliders
+        const redSlider = document.getElementById('red-slider');
+        const greenSlider = document.getElementById('green-slider');
+        const blueSlider = document.getElementById('blue-slider');
+        const redValue = document.getElementById('red-value');
+        const greenValue = document.getElementById('green-value');
+        const blueValue = document.getElementById('blue-value');
+        const mainPreview = document.getElementById('main-preview');
 
         function resizeStage() {
             const container = document.getElementById('stage-container');
@@ -218,75 +287,59 @@
             return [Math.round(f(0) * 255), Math.round(f(8) * 255), Math.round(f(4) * 255)];
         }
 
+        function rgbToHsl(r, g, b) {
+            r /= 255; g /= 255; b /= 255;
+            const max = Math.max(r, g, b), min = Math.min(r, g, b);
+            let h, s, l = (max + min) / 2;
+
+            if (max === min) {
+                h = s = 0;
+            } else {
+                const d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                switch (max) {
+                    case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+                    case g: h = ((b - r) / d + 2) / 6; break;
+                    case b: h = ((r - g) / d + 4) / 6; break;
+                }
+            }
+            return [h * 360, s * 100, l * 100];
+        }
+
         function rgbToString(rgb) {
             return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
         }
 
-        function getHarmonyColors(hue, type) {
+        function getHarmonyColorsFromRgb(r, g, b, type) {
+            const [h, s, l] = rgbToHsl(r, g, b);
             const colors = { left: [], right: [] };
 
             switch(type) {
                 case 'complementary':
-                    colors.left = [hslToRgb((hue + 180) % 360, 100, 50)];
-                    colors.right = [hslToRgb((hue + 180) % 360, 100, 50)];
+                    colors.left = [hslToRgb((h + 180) % 360, s, l)];
+                    colors.right = [hslToRgb((h + 180) % 360, s, l)];
                     break;
                 case 'analogous':
-                    colors.left = [hslToRgb((hue + 330) % 360, 100, 50)];
-                    colors.right = [hslToRgb((hue + 30) % 360, 100, 50)];
+                    colors.left = [hslToRgb((h + 330) % 360, s, l)];
+                    colors.right = [hslToRgb((h + 30) % 360, s, l)];
                     break;
                 case 'triadic':
-                    colors.left = [hslToRgb((hue + 120) % 360, 100, 50)];
-                    colors.right = [hslToRgb((hue + 240) % 360, 100, 50)];
+                    colors.left = [hslToRgb((h + 120) % 360, s, l)];
+                    colors.right = [hslToRgb((h + 240) % 360, s, l)];
                     break;
                 case 'split':
-                    colors.left = [hslToRgb((hue + 150) % 360, 100, 50)];
-                    colors.right = [hslToRgb((hue + 210) % 360, 100, 50)];
+                    colors.left = [hslToRgb((h + 150) % 360, s, l)];
+                    colors.right = [hslToRgb((h + 210) % 360, s, l)];
                     break;
             }
             return colors;
         }
 
-        // ===== COLOR WHEEL =====
-        function drawColorWheel() {
-            const cx = 75, cy = 75, radius = 70;
-
-            // Draw hue wheel
-            for (let angle = 0; angle < 360; angle++) {
-                const startAngle = (angle - 1) * Math.PI / 180;
-                const endAngle = (angle + 1) * Math.PI / 180;
-
-                wheelCtx.beginPath();
-                wheelCtx.moveTo(cx, cy);
-                wheelCtx.arc(cx, cy, radius, startAngle, endAngle);
-                wheelCtx.closePath();
-
-                const rgb = hslToRgb(angle, 100, 50);
-                wheelCtx.fillStyle = rgbToString(rgb);
-                wheelCtx.fill();
-            }
-
-            // Center gradient for saturation/lightness
-            const gradient = wheelCtx.createRadialGradient(cx, cy, 0, cx, cy, radius);
-            gradient.addColorStop(0, 'rgba(255,255,255,0.8)');
-            gradient.addColorStop(0.5, 'rgba(255,255,255,0)');
-            gradient.addColorStop(1, 'rgba(0,0,0,0)');
-            wheelCtx.fillStyle = gradient;
-            wheelCtx.beginPath();
-            wheelCtx.arc(cx, cy, radius, 0, Math.PI * 2);
-            wheelCtx.fill();
-        }
-
-        function updateSelector() {
-            const cx = 75, cy = 75;
-            const dist = (100 - selectedSat) * 0.5;
-            const angle = selectedHue * Math.PI / 180;
-            const x = cx + Math.cos(angle) * (60 - dist * 0.5);
-            const y = cy + Math.sin(angle) * (60 - dist * 0.5);
-            selector.style.left = x + 'px';
-            selector.style.top = y + 'px';
-
-            const rgb = hslToRgb(selectedHue, 100, 50);
-            selector.style.backgroundColor = rgbToString(rgb);
+        function updateSliderDisplay() {
+            redValue.textContent = selectedR;
+            greenValue.textContent = selectedG;
+            blueValue.textContent = selectedB;
+            mainPreview.style.backgroundColor = `rgb(${selectedR}, ${selectedG}, ${selectedB})`;
         }
 
         // ===== STAGE ELEMENTS =====
@@ -436,22 +489,19 @@
 
         function drawTreeProps(ctx, w, h, floorY, colors) {
             const curtainWidth = w * 0.12;
+            // Three trees - one directly under each spotlight
             const treePositions = [
-                { x: curtainWidth + w * 0.08, scale: 0.9 },
-                { x: curtainWidth + w * 0.18, scale: 1.1 },
-                { x: w - curtainWidth - w * 0.08, scale: 0.85 },
-                { x: w - curtainWidth - w * 0.18, scale: 1.0 },
+                { x: curtainWidth + w * 0.12, scale: 1.0, color: colors.left },
+                { x: w * 0.5, scale: 1.15, color: colors.main },
+                { x: w - curtainWidth - w * 0.12, scale: 1.0, color: colors.right },
             ];
 
-            treePositions.forEach((tree, idx) => {
-                const treeH = h * 0.35 * tree.scale;
+            treePositions.forEach((tree) => {
+                const treeH = h * 0.4 * tree.scale;
                 const treeW = treeH * 0.35;
                 const x = tree.x;
                 const y = floorY;
-
-                // Determine which light affects this tree
-                const isLeft = idx < 2;
-                const lightColor = isLeft ? colors.left : colors.right;
+                const lightColor = tree.color;
 
                 // Tree base color (dark green)
                 const baseR = 20, baseG = 40, baseB = 25;
@@ -467,7 +517,7 @@
                     const layerW = treeW * (1 - i * 0.15);
 
                     // Lit side (front)
-                    const lightIntensity = 0.4 - i * 0.05;
+                    const lightIntensity = 0.5 - i * 0.05;
                     const r = Math.min(255, baseR + lightColor[0] * lightIntensity);
                     const g = Math.min(255, baseG + lightColor[1] * lightIntensity);
                     const b = Math.min(255, baseB + lightColor[2] * lightIntensity);
@@ -481,7 +531,7 @@
                     ctx.fill();
 
                     // Highlight edge
-                    ctx.strokeStyle = `rgba(${lightColor[0]}, ${lightColor[1]}, ${lightColor[2]}, 0.3)`;
+                    ctx.strokeStyle = `rgba(${lightColor[0]}, ${lightColor[1]}, ${lightColor[2]}, 0.4)`;
                     ctx.lineWidth = 2;
                     ctx.stroke();
                 }
@@ -569,9 +619,9 @@
             stageCtx.fillStyle = '#000';
             stageCtx.fillRect(0, 0, w, h);
 
-            // Get current colors
-            const mainColor = hslToRgb(selectedHue, 100, 50);
-            const harmony = getHarmonyColors(selectedHue, harmonyType);
+            // Get current colors from RGB sliders
+            const mainColor = [selectedR, selectedG, selectedB];
+            const harmony = getHarmonyColorsFromRgb(selectedR, selectedG, selectedB, harmonyType);
             const leftColor = harmony.left[0];
             const rightColor = harmony.right[0];
 
@@ -636,51 +686,17 @@
         }
 
         // ===== EVENT HANDLERS =====
-        function handleWheelInteraction(e) {
-            const rect = wheel.getBoundingClientRect();
-            const x = e.clientX - rect.left - 75;
-            const y = e.clientY - rect.top - 75;
-            const dist = Math.sqrt(x * x + y * y);
-
-            if (dist <= 70) {
-                selectedHue = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
-                selectedSat = Math.min(100, (dist / 70) * 100);
-                updateSelector();
-                drawScene();
-            }
+        function handleSliderChange() {
+            selectedR = parseInt(redSlider.value);
+            selectedG = parseInt(greenSlider.value);
+            selectedB = parseInt(blueSlider.value);
+            updateSliderDisplay();
+            drawScene();
         }
 
-        let isDragging = false;
-
-        wheel.addEventListener('mousedown', (e) => {
-            isDragging = true;
-            handleWheelInteraction(e);
-        });
-
-        window.addEventListener('mousemove', (e) => {
-            if (isDragging) handleWheelInteraction(e);
-        });
-
-        window.addEventListener('mouseup', () => {
-            isDragging = false;
-        });
-
-        // Touch support
-        wheel.addEventListener('touchstart', (e) => {
-            isDragging = true;
-            handleWheelInteraction(e.touches[0]);
-        });
-
-        wheel.addEventListener('touchmove', (e) => {
-            if (isDragging) {
-                e.preventDefault();
-                handleWheelInteraction(e.touches[0]);
-            }
-        });
-
-        wheel.addEventListener('touchend', () => {
-            isDragging = false;
-        });
+        redSlider.addEventListener('input', handleSliderChange);
+        greenSlider.addEventListener('input', handleSliderChange);
+        blueSlider.addEventListener('input', handleSliderChange);
 
         // Harmony buttons
         document.querySelectorAll('.harmony-btn').forEach(btn => {
@@ -695,8 +711,7 @@
         // ===== INITIALIZATION =====
         window.addEventListener('resize', resizeStage);
         resizeStage();
-        drawColorWheel();
-        updateSelector();
+        updateSliderDisplay();
         drawScene();
     </script>
 </body>
