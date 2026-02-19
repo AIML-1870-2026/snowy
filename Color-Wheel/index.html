@@ -483,6 +483,116 @@
         .modal-hidden {
             display: none;
         }
+
+        /* Accessibility Panel */
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 10px;
+            background: #0a0a0a;
+            border-radius: 4px;
+            border: 1px solid #222;
+            margin-bottom: 10px;
+        }
+        .toggle-label {
+            font-size: 9px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .toggle-switch {
+            position: relative;
+            width: 40px;
+            height: 20px;
+            background: linear-gradient(to bottom, #1a1a1a, #0a0a0a);
+            border: 2px solid #333;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 12px;
+            height: 12px;
+            background: linear-gradient(to bottom, #666, #444);
+            border-radius: 50%;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        .toggle-switch.active {
+            background: linear-gradient(to bottom, #1a3a1a, #0a2a0a);
+            border-color: #2a5a2a;
+        }
+        .toggle-switch.active::after {
+            left: 22px;
+            background: linear-gradient(to bottom, #6f6, #4c4);
+            box-shadow: 0 0 8px #0f0, 0 2px 4px rgba(0,0,0,0.5);
+        }
+        .contrast-display {
+            background: #0a0a0a;
+            border: 1px solid #222;
+            border-radius: 4px;
+            padding: 8px;
+        }
+        .contrast-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            font-size: 9px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .contrast-value {
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            min-width: 50px;
+            text-align: center;
+        }
+        .contrast-value.pass {
+            color: #4f4;
+            background: #0a1a0a;
+            border: 1px solid #2a5a2a;
+            text-shadow: 0 0 8px rgba(68,255,68,0.5);
+        }
+        .contrast-value.fail {
+            color: #f44;
+            background: #1a0a0a;
+            border: 1px solid #5a2a2a;
+            text-shadow: 0 0 8px rgba(255,68,68,0.5);
+        }
+        .contrast-value.warn {
+            color: #fa0;
+            background: #1a1a0a;
+            border: 1px solid #5a5a2a;
+            text-shadow: 0 0 8px rgba(255,170,0,0.5);
+        }
+        .a11y-status {
+            text-align: center;
+            margin-top: 8px;
+            padding: 6px;
+            border-radius: 4px;
+            font-size: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .a11y-status.good {
+            background: #0a1a0a;
+            border: 1px solid #2a5a2a;
+            color: #4f4;
+        }
+        .a11y-status.adjusted {
+            background: #1a1a0a;
+            border: 1px solid #5a5a2a;
+            color: #fa0;
+        }
     </style>
 </head>
 <body>
@@ -526,6 +636,29 @@
                 <button class="harmony-btn" data-harmony="triadic">Triadic</button>
                 <button class="harmony-btn" data-harmony="split">Split-Complementary</button>
             </div>
+        </div>
+
+        <div class="panel-section">
+            <div class="panel-label">Accessible Palette</div>
+            <div class="toggle-container">
+                <span class="toggle-label">Ensure Contrast</span>
+                <div class="toggle-switch" id="a11y-toggle"></div>
+            </div>
+            <div class="contrast-display">
+                <div class="contrast-row">
+                    <span>Left vs Center</span>
+                    <span class="contrast-value" id="contrast-lc">--</span>
+                </div>
+                <div class="contrast-row">
+                    <span>Center vs Right</span>
+                    <span class="contrast-value" id="contrast-cr">--</span>
+                </div>
+                <div class="contrast-row">
+                    <span>Left vs Right</span>
+                    <span class="contrast-value" id="contrast-lr">--</span>
+                </div>
+            </div>
+            <div class="a11y-status good" id="a11y-status">Colors Distinguishable</div>
         </div>
 
         <div class="panel-section">
@@ -645,6 +778,116 @@
 
         function rgbToString(rgb) {
             return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+        }
+
+        // ===== ACCESSIBILITY - CONTRAST =====
+        let accessibilityMode = false;
+        const MIN_CONTRAST_RATIO = 3.0; // WCAG AA for large text/graphics
+
+        function linearize(value) {
+            value /= 255;
+            return value <= 0.03928 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4);
+        }
+
+        function getRelativeLuminance(rgb) {
+            const r = linearize(rgb[0]);
+            const g = linearize(rgb[1]);
+            const b = linearize(rgb[2]);
+            return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        }
+
+        function getContrastRatio(rgb1, rgb2) {
+            const l1 = getRelativeLuminance(rgb1);
+            const l2 = getRelativeLuminance(rgb2);
+            const lighter = Math.max(l1, l2);
+            const darker = Math.min(l1, l2);
+            return (lighter + 0.05) / (darker + 0.05);
+        }
+
+        function adjustColorForContrast(baseColor, targetColor, minRatio) {
+            let adjusted = [...targetColor];
+            const [h, s, l] = rgbToHsl(adjusted[0], adjusted[1], adjusted[2]);
+            let currentRatio = getContrastRatio(baseColor, adjusted);
+
+            if (currentRatio >= minRatio) return adjusted;
+
+            // Try adjusting lightness to achieve contrast
+            const baseLum = getRelativeLuminance(baseColor);
+            const targetLum = getRelativeLuminance(adjusted);
+
+            // Determine direction: make lighter or darker
+            let newL = l;
+            const step = 5;
+            const maxIterations = 20;
+
+            if (baseLum > targetLum) {
+                // Base is lighter, make target darker
+                for (let i = 0; i < maxIterations && currentRatio < minRatio; i++) {
+                    newL = Math.max(10, newL - step);
+                    adjusted = hslToRgb(h, s, newL);
+                    currentRatio = getContrastRatio(baseColor, adjusted);
+                }
+            } else {
+                // Base is darker, make target lighter
+                for (let i = 0; i < maxIterations && currentRatio < minRatio; i++) {
+                    newL = Math.min(90, newL + step);
+                    adjusted = hslToRgb(h, s, newL);
+                    currentRatio = getContrastRatio(baseColor, adjusted);
+                }
+            }
+
+            // If still not enough, also adjust saturation
+            if (currentRatio < minRatio) {
+                let newS = s;
+                for (let i = 0; i < maxIterations && currentRatio < minRatio; i++) {
+                    newS = Math.max(20, newS - step);
+                    adjusted = hslToRgb(h, newS, newL);
+                    currentRatio = getContrastRatio(baseColor, adjusted);
+                }
+            }
+
+            return adjusted;
+        }
+
+        function updateContrastDisplay(mainColor, leftColor, rightColor) {
+            const contrastLC = getContrastRatio(leftColor, mainColor);
+            const contrastCR = getContrastRatio(mainColor, rightColor);
+            const contrastLR = getContrastRatio(leftColor, rightColor);
+
+            const lcEl = document.getElementById('contrast-lc');
+            const crEl = document.getElementById('contrast-cr');
+            const lrEl = document.getElementById('contrast-lr');
+            const statusEl = document.getElementById('a11y-status');
+
+            function setContrastClass(el, ratio) {
+                el.textContent = ratio.toFixed(1) + ':1';
+                el.classList.remove('pass', 'fail', 'warn');
+                if (ratio >= MIN_CONTRAST_RATIO) {
+                    el.classList.add('pass');
+                } else if (ratio >= 2.0) {
+                    el.classList.add('warn');
+                } else {
+                    el.classList.add('fail');
+                }
+            }
+
+            setContrastClass(lcEl, contrastLC);
+            setContrastClass(crEl, contrastCR);
+            setContrastClass(lrEl, contrastLR);
+
+            const allPass = contrastLC >= MIN_CONTRAST_RATIO && contrastCR >= MIN_CONTRAST_RATIO && contrastLR >= MIN_CONTRAST_RATIO;
+            statusEl.classList.remove('good', 'adjusted');
+
+            if (allPass) {
+                statusEl.textContent = 'Colors Distinguishable';
+                statusEl.classList.add('good');
+            } else if (accessibilityMode) {
+                statusEl.textContent = 'Colors Adjusted';
+                statusEl.classList.add('adjusted');
+            } else {
+                statusEl.textContent = 'Low Contrast';
+                statusEl.classList.add('adjusted');
+            }
         }
 
         function getHarmonyColorsFromRgb(r, g, b, type) {
@@ -959,8 +1202,19 @@
             // Get current colors from RGB sliders
             const mainColor = [selectedR, selectedG, selectedB];
             const harmony = getHarmonyColorsFromRgb(selectedR, selectedG, selectedB, harmonyType);
-            const leftColor = harmony.left[0];
-            const rightColor = harmony.right[0];
+            let leftColor = harmony.left[0];
+            let rightColor = harmony.right[0];
+
+            // Apply accessibility adjustments if enabled
+            if (accessibilityMode) {
+                leftColor = adjustColorForContrast(mainColor, leftColor, MIN_CONTRAST_RATIO);
+                rightColor = adjustColorForContrast(mainColor, rightColor, MIN_CONTRAST_RATIO);
+                // Also ensure left and right have contrast
+                rightColor = adjustColorForContrast(leftColor, rightColor, MIN_CONTRAST_RATIO);
+            }
+
+            // Update contrast display
+            updateContrastDisplay(mainColor, leftColor, rightColor);
 
             // Draw backdrop (behind everything)
             drawBackdrop(stageCtx, w, h, ceilingY, floorY);
@@ -1043,6 +1297,14 @@
                 harmonyType = btn.dataset.harmony;
                 drawScene();
             });
+        });
+
+        // Accessibility toggle
+        const a11yToggle = document.getElementById('a11y-toggle');
+        a11yToggle.addEventListener('click', () => {
+            accessibilityMode = !accessibilityMode;
+            a11yToggle.classList.toggle('active', accessibilityMode);
+            drawScene();
         });
 
         // ===== MODAL =====
