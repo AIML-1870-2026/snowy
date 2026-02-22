@@ -13,7 +13,7 @@
 
         body {
             font-family: system-ui, -apple-system, sans-serif;
-            background: #f5f5dc;
+            background: #ffffff;
             color: #333;
             min-height: 100vh;
             padding: 2rem;
@@ -42,6 +42,7 @@
             background: #16213e;
             padding: 1.5rem;
             border-radius: 12px;
+            color: #87ceeb;
         }
 
         .control-group h2 {
@@ -259,6 +260,48 @@
             line-height: 1.6;
         }
 
+        .presets {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #333;
+        }
+
+        .presets h3 {
+            font-size: 0.95rem;
+            color: #87ceeb;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .preset-group {
+            margin-bottom: 1rem;
+        }
+
+        .preset-group h4 {
+            font-size: 0.8rem;
+            color: #888;
+            margin-bottom: 0.5rem;
+        }
+
+        .preset-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .preset-btn {
+            padding: 0.4rem 0.75rem;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .preset-btn:hover {
+            transform: scale(1.05);
+        }
+
         @media (max-width: 600px) {
             .controls {
                 grid-template-columns: 1fr;
@@ -351,6 +394,45 @@
                 <h4>WCAG Accessibility Standards</h4>
                 <p><strong>AA (4.5:1)</strong> - Minimum contrast for normal text. The standard most websites aim for.</p>
                 <p><strong>AAA (7:1)</strong> - Enhanced contrast for normal text. The highest level of accessibility.</p>
+            </div>
+
+            <div class="presets">
+                <h3>Preset Color Schemes</h3>
+
+                <div class="preset-group">
+                    <h4>High Contrast</h4>
+                    <div class="preset-buttons">
+                        <button class="preset-btn" style="background:#fff;color:#000;border:1px solid #ccc;" data-bg="255,255,255" data-text="0,0,0">Black on White</button>
+                        <button class="preset-btn" style="background:#000;color:#fff;" data-bg="0,0,0" data-text="255,255,255">White on Black</button>
+                        <button class="preset-btn" style="background:#000;color:#ffff00;" data-bg="0,0,0" data-text="255,255,0">Yellow on Black</button>
+                    </div>
+                </div>
+
+                <div class="preset-group">
+                    <h4>Common Websites</h4>
+                    <div class="preset-buttons">
+                        <button class="preset-btn" style="background:#0d1117;color:#c9d1d9;" data-bg="13,17,23" data-text="201,209,217">GitHub Dark</button>
+                        <button class="preset-btn" style="background:#15202b;color:#ffffff;" data-bg="21,32,43" data-text="255,255,255">Twitter Dark</button>
+                        <button class="preset-btn" style="background:#1a1a1b;color:#d7dadc;" data-bg="26,26,27" data-text="215,218,220">Reddit Dark</button>
+                    </div>
+                </div>
+
+                <div class="preset-group">
+                    <h4>Low Contrast</h4>
+                    <div class="preset-buttons">
+                        <button class="preset-btn" style="background:#fff;color:#999;border:1px solid #ccc;" data-bg="255,255,255" data-text="153,153,153">Gray on White</button>
+                        <button class="preset-btn" style="background:#f0f0f0;color:#a0a0a0;" data-bg="240,240,240" data-text="160,160,160">Light Gray</button>
+                    </div>
+                </div>
+
+                <div class="preset-group">
+                    <h4>Problematic (Fail WCAG)</h4>
+                    <div class="preset-buttons">
+                        <button class="preset-btn" style="background:#fff;color:#ffcc00;border:1px solid #ccc;" data-bg="255,255,255" data-text="255,204,0">Yellow on White</button>
+                        <button class="preset-btn" style="background:#ff6666;color:#66ff66;" data-bg="255,102,102" data-text="102,255,102">Green on Red</button>
+                        <button class="preset-btn" style="background:#add8e6;color:#87ceeb;" data-bg="173,216,230" data-text="135,206,235">Blue on Blue</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -472,6 +554,23 @@
 
         document.addEventListener('click', () => {
             tooltip.classList.remove('show');
+        });
+
+        // Preset buttons
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const bgColors = btn.dataset.bg.split(',').map(Number);
+                const textColors = btn.dataset.text.split(',').map(Number);
+
+                bgR.value = bgColors[0];
+                bgG.value = bgColors[1];
+                bgB.value = bgColors[2];
+                textR.value = textColors[0];
+                textG.value = textColors[1];
+                textB.value = textColors[2];
+
+                update();
+            });
         });
     </script>
 </body>
