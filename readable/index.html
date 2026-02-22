@@ -4,8 +4,394 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Readable</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 2rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            display: grid;
+            gap: 2rem;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .control-group {
+            background: #16213e;
+            padding: 1.5rem;
+            border-radius: 12px;
+        }
+
+        .control-group h2 {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .color-swatch {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            border: 2px solid #fff;
+        }
+
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .slider-row label {
+            width: 20px;
+            font-weight: bold;
+        }
+
+        .slider-row input[type="range"] {
+            flex: 1;
+            height: 8px;
+            border-radius: 4px;
+            -webkit-appearance: none;
+            appearance: none;
+            cursor: pointer;
+        }
+
+        .slider-row input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+            border: 2px solid #333;
+        }
+
+        .slider-r::-webkit-slider-runnable-track { background: linear-gradient(to right, #000, #f00); }
+        .slider-g::-webkit-slider-runnable-track { background: linear-gradient(to right, #000, #0f0); }
+        .slider-b::-webkit-slider-runnable-track { background: linear-gradient(to right, #000, #00f); }
+
+        .slider-row .value {
+            width: 40px;
+            text-align: right;
+            font-family: monospace;
+        }
+
+        .luminance {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #333;
+            font-family: monospace;
+        }
+
+        .metrics {
+            background: #16213e;
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .contrast-ratio {
+            font-size: 3rem;
+            font-weight: bold;
+            font-family: monospace;
+        }
+
+        .contrast-label {
+            font-size: 0.9rem;
+            color: #888;
+            margin-top: 0.5rem;
+        }
+
+        .wcag-status {
+            margin-top: 1rem;
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .wcag-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .wcag-pass {
+            background: #2e7d32;
+            color: #fff;
+        }
+
+        .wcag-fail {
+            background: #c62828;
+            color: #fff;
+        }
+
+        .preview-section {
+            background: #16213e;
+            padding: 1.5rem;
+            border-radius: 12px;
+        }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .preview-header h2 {
+            font-size: 1.1rem;
+        }
+
+        .size-control {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .size-control input[type="range"] {
+            width: 120px;
+        }
+
+        .size-control span {
+            font-family: monospace;
+            width: 50px;
+        }
+
+        .preview-box {
+            padding: 2rem;
+            border-radius: 8px;
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .preview-box h3 {
+            margin-bottom: 0.5rem;
+        }
+
+        .preview-box p {
+            line-height: 1.6;
+        }
+
+        @media (max-width: 600px) {
+            .controls {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
+    <div class="container">
+        <h1>Readable</h1>
 
+        <div class="controls">
+            <div class="control-group">
+                <h2>
+                    <span class="color-swatch" id="bg-swatch"></span>
+                    Background Color
+                </h2>
+                <div class="slider-row">
+                    <label>R</label>
+                    <input type="range" min="0" max="255" value="255" class="slider-r" id="bg-r">
+                    <span class="value" id="bg-r-val">255</span>
+                </div>
+                <div class="slider-row">
+                    <label>G</label>
+                    <input type="range" min="0" max="255" value="255" class="slider-g" id="bg-g">
+                    <span class="value" id="bg-g-val">255</span>
+                </div>
+                <div class="slider-row">
+                    <label>B</label>
+                    <input type="range" min="0" max="255" value="255" class="slider-b" id="bg-b">
+                    <span class="value" id="bg-b-val">255</span>
+                </div>
+                <div class="luminance">
+                    Luminance: <span id="bg-luminance">1.0000</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h2>
+                    <span class="color-swatch" id="text-swatch"></span>
+                    Text Color
+                </h2>
+                <div class="slider-row">
+                    <label>R</label>
+                    <input type="range" min="0" max="255" value="0" class="slider-r" id="text-r">
+                    <span class="value" id="text-r-val">0</span>
+                </div>
+                <div class="slider-row">
+                    <label>G</label>
+                    <input type="range" min="0" max="255" value="0" class="slider-g" id="text-g">
+                    <span class="value" id="text-g-val">0</span>
+                </div>
+                <div class="slider-row">
+                    <label>B</label>
+                    <input type="range" min="0" max="255" value="0" class="slider-b" id="text-b">
+                    <span class="value" id="text-b-val">0</span>
+                </div>
+                <div class="luminance">
+                    Luminance: <span id="text-luminance">0.0000</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="metrics">
+            <div class="contrast-ratio" id="contrast-ratio">21.00:1</div>
+            <div class="contrast-label">Contrast Ratio</div>
+            <div class="wcag-status">
+                <span class="wcag-badge" id="wcag-aa">AA</span>
+                <span class="wcag-badge" id="wcag-aaa">AAA</span>
+            </div>
+        </div>
+
+        <div class="preview-section">
+            <div class="preview-header">
+                <h2>Text Preview</h2>
+                <div class="size-control">
+                    <label>Size:</label>
+                    <input type="range" min="12" max="48" value="16" id="text-size">
+                    <span id="text-size-val">16px</span>
+                </div>
+            </div>
+            <div class="preview-box" id="preview-box">
+                <h3>Sample Heading</h3>
+                <p>The quick brown fox jumps over the lazy dog. This sample text helps you evaluate readability with your chosen color combination.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get all elements
+        const bgR = document.getElementById('bg-r');
+        const bgG = document.getElementById('bg-g');
+        const bgB = document.getElementById('bg-b');
+        const textR = document.getElementById('text-r');
+        const textG = document.getElementById('text-g');
+        const textB = document.getElementById('text-b');
+        const textSize = document.getElementById('text-size');
+
+        const bgRVal = document.getElementById('bg-r-val');
+        const bgGVal = document.getElementById('bg-g-val');
+        const bgBVal = document.getElementById('bg-b-val');
+        const textRVal = document.getElementById('text-r-val');
+        const textGVal = document.getElementById('text-g-val');
+        const textBVal = document.getElementById('text-b-val');
+        const textSizeVal = document.getElementById('text-size-val');
+
+        const bgSwatch = document.getElementById('bg-swatch');
+        const textSwatch = document.getElementById('text-swatch');
+        const bgLuminance = document.getElementById('bg-luminance');
+        const textLuminance = document.getElementById('text-luminance');
+        const contrastRatio = document.getElementById('contrast-ratio');
+        const previewBox = document.getElementById('preview-box');
+        const wcagAA = document.getElementById('wcag-aa');
+        const wcagAAA = document.getElementById('wcag-aaa');
+
+        // Convert sRGB to linear RGB
+        function sRGBtoLinear(value) {
+            const v = value / 255;
+            return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+        }
+
+        // Calculate relative luminance
+        function getLuminance(r, g, b) {
+            const rLin = sRGBtoLinear(r);
+            const gLin = sRGBtoLinear(g);
+            const bLin = sRGBtoLinear(b);
+            return 0.2126 * rLin + 0.7152 * gLin + 0.0722 * bLin;
+        }
+
+        // Calculate contrast ratio
+        function getContrastRatio(l1, l2) {
+            const lighter = Math.max(l1, l2);
+            const darker = Math.min(l1, l2);
+            return (lighter + 0.05) / (darker + 0.05);
+        }
+
+        // Update everything
+        function update() {
+            const bgRGB = [+bgR.value, +bgG.value, +bgB.value];
+            const textRGB = [+textR.value, +textG.value, +textB.value];
+
+            // Update value displays
+            bgRVal.textContent = bgRGB[0];
+            bgGVal.textContent = bgRGB[1];
+            bgBVal.textContent = bgRGB[2];
+            textRVal.textContent = textRGB[0];
+            textGVal.textContent = textRGB[1];
+            textBVal.textContent = textRGB[2];
+            textSizeVal.textContent = textSize.value + 'px';
+
+            // Calculate luminance
+            const bgLum = getLuminance(...bgRGB);
+            const textLum = getLuminance(...textRGB);
+
+            bgLuminance.textContent = bgLum.toFixed(4);
+            textLuminance.textContent = textLum.toFixed(4);
+
+            // Calculate contrast ratio
+            const ratio = getContrastRatio(bgLum, textLum);
+            contrastRatio.textContent = ratio.toFixed(2) + ':1';
+
+            // Update swatches
+            const bgColor = `rgb(${bgRGB.join(',')})`;
+            const textColor = `rgb(${textRGB.join(',')})`;
+            bgSwatch.style.background = bgColor;
+            textSwatch.style.background = textColor;
+
+            // Update preview
+            previewBox.style.background = bgColor;
+            previewBox.style.color = textColor;
+            previewBox.style.fontSize = textSize.value + 'px';
+
+            // Update WCAG badges
+            if (ratio >= 4.5) {
+                wcagAA.className = 'wcag-badge wcag-pass';
+            } else {
+                wcagAA.className = 'wcag-badge wcag-fail';
+            }
+
+            if (ratio >= 7) {
+                wcagAAA.className = 'wcag-badge wcag-pass';
+            } else {
+                wcagAAA.className = 'wcag-badge wcag-fail';
+            }
+        }
+
+        // Add event listeners
+        [bgR, bgG, bgB, textR, textG, textB, textSize].forEach(el => {
+            el.addEventListener('input', update);
+        });
+
+        // Initial update
+        update();
+    </script>
 </body>
 </html>
