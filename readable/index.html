@@ -13,8 +13,8 @@
 
         body {
             font-family: system-ui, -apple-system, sans-serif;
-            background: #1a1a2e;
-            color: #eee;
+            background: #f5f5dc;
+            color: #333;
             min-height: 100vh;
             padding: 2rem;
         }
@@ -150,6 +150,66 @@
             color: #fff;
         }
 
+        .wcag-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .help-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid #888;
+            background: transparent;
+            color: #888;
+            font-size: 0.85rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .help-btn:hover {
+            border-color: #fff;
+            color: #fff;
+        }
+
+        .tooltip {
+            display: none;
+            position: absolute;
+            background: #0f0f23;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 1rem;
+            max-width: 300px;
+            text-align: left;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+
+        .tooltip.show {
+            display: block;
+        }
+
+        .tooltip h4 {
+            margin-bottom: 0.5rem;
+        }
+
+        .tooltip p {
+            margin-bottom: 0.5rem;
+            color: #ccc;
+        }
+
+        .metrics {
+            position: relative;
+        }
+
         .preview-section {
             background: #16213e;
             padding: 1.5rem;
@@ -208,7 +268,22 @@
 </head>
 <body>
     <div class="container">
-        <h1>Readable</h1>
+        <h1>Readable -- explore how webpage elements impact readability</h1>
+
+        <div class="preview-section">
+            <div class="preview-header">
+                <h2>Text Preview</h2>
+                <div class="size-control">
+                    <label>Size:</label>
+                    <input type="range" min="12" max="48" value="16" id="text-size">
+                    <span id="text-size-val">16px</span>
+                </div>
+            </div>
+            <div class="preview-box" id="preview-box">
+                <h3>Sample Heading</h3>
+                <p>The quick brown fox jumps over the lazy dog. This sample text helps you evaluate readability with your chosen color combination.</p>
+            </div>
+        </div>
 
         <div class="controls">
             <div class="control-group">
@@ -265,24 +340,17 @@
         <div class="metrics">
             <div class="contrast-ratio" id="contrast-ratio">21.00:1</div>
             <div class="contrast-label">Contrast Ratio</div>
-            <div class="wcag-status">
-                <span class="wcag-badge" id="wcag-aa">AA</span>
-                <span class="wcag-badge" id="wcag-aaa">AAA</span>
-            </div>
-        </div>
-
-        <div class="preview-section">
-            <div class="preview-header">
-                <h2>Text Preview</h2>
-                <div class="size-control">
-                    <label>Size:</label>
-                    <input type="range" min="12" max="48" value="16" id="text-size">
-                    <span id="text-size-val">16px</span>
+            <div class="wcag-row">
+                <div class="wcag-status">
+                    <span class="wcag-badge" id="wcag-aa">AA</span>
+                    <span class="wcag-badge" id="wcag-aaa">AAA</span>
                 </div>
+                <button class="help-btn" id="help-btn">?</button>
             </div>
-            <div class="preview-box" id="preview-box">
-                <h3>Sample Heading</h3>
-                <p>The quick brown fox jumps over the lazy dog. This sample text helps you evaluate readability with your chosen color combination.</p>
+            <div class="tooltip" id="tooltip">
+                <h4>WCAG Accessibility Standards</h4>
+                <p><strong>AA (4.5:1)</strong> - Minimum contrast for normal text. The standard most websites aim for.</p>
+                <p><strong>AAA (7:1)</strong> - Enhanced contrast for normal text. The highest level of accessibility.</p>
             </div>
         </div>
     </div>
@@ -392,6 +460,19 @@
 
         // Initial update
         update();
+
+        // Tooltip toggle
+        const helpBtn = document.getElementById('help-btn');
+        const tooltip = document.getElementById('tooltip');
+
+        helpBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            tooltip.classList.toggle('show');
+        });
+
+        document.addEventListener('click', () => {
+            tooltip.classList.remove('show');
+        });
     </script>
 </body>
 </html>
