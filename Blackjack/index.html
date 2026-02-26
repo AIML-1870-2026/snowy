@@ -552,10 +552,24 @@
 
             // Update values
             const playerValue = calculateHandValue(playerHand);
-            const dealerValue = hideDealer ? getCardValue(dealerHand[0]) : calculateHandValue(dealerHand);
+            let dealerValue = 0;
+            let dealerDisplay = '0';
+
+            if (dealerHand.length > 0) {
+                if (hideDealer && dealerHand.length > 1) {
+                    dealerValue = getCardValue(dealerHand[0]);
+                    dealerDisplay = dealerValue + ' + ?';
+                } else if (hideDealer && dealerHand.length === 1) {
+                    dealerValue = getCardValue(dealerHand[0]);
+                    dealerDisplay = dealerValue.toString();
+                } else {
+                    dealerValue = calculateHandValue(dealerHand);
+                    dealerDisplay = dealerValue.toString();
+                }
+            }
 
             document.getElementById('player-value').textContent = playerValue;
-            document.getElementById('dealer-value').textContent = hideDealer ? dealerValue + ' + ?' : dealerValue;
+            document.getElementById('dealer-value').textContent = dealerDisplay;
 
             // Update info bar
             document.getElementById('bankroll').textContent = bankroll;
