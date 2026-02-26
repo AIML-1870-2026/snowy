@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blackjack</title>
+    <title>Purplejack</title>
     <style>
         * {
             margin: 0;
@@ -45,6 +45,62 @@
         }
         .info-item {
             text-align: center;
+            position: relative;
+        }
+        .info-item.bankroll-container {
+            overflow: visible;
+        }
+        .firework {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            animation: firework 1s ease-out forwards;
+            pointer-events: none;
+        }
+        @keyframes firework {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--tx), var(--ty)) scale(0);
+                opacity: 0;
+            }
+        }
+        .sparkle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #ffd700;
+            border-radius: 50%;
+            animation: sparkle 0.6s ease-out forwards;
+            pointer-events: none;
+        }
+        @keyframes sparkle {
+            0% {
+                transform: scale(0);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.5);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(0);
+                opacity: 0;
+            }
+        }
+        .win-glow {
+            animation: winGlow 1s ease-in-out;
+        }
+        @keyframes winGlow {
+            0%, 100% {
+                text-shadow: none;
+            }
+            50% {
+                text-shadow: 0 0 20px #ffd700, 0 0 40px #ffa500, 0 0 60px #ff6600;
+            }
         }
         .info-label {
             font-size: 0.85rem;
@@ -92,39 +148,82 @@
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
+            perspective: 1000px;
         }
-        .card {
+        .card-container {
             width: 70px;
             height: 100px;
-            background: white;
+            perspective: 1000px;
+        }
+        .card {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s ease;
+        }
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
+        .card.deal-animation {
+            animation: dealCard 0.6s ease forwards;
+        }
+        @keyframes dealCard {
+            0% {
+                transform: rotateY(0deg) translateX(-100px) scale(0.5);
+                opacity: 0;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                transform: rotateY(180deg) translateX(0) scale(1);
+            }
+        }
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
             border-radius: 8px;
+            box-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+        }
+        .card-front {
+            background: white;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             padding: 8px;
             font-size: 1.2rem;
             font-weight: bold;
-            box-shadow: 2px 2px 8px rgba(0,0,0,0.3);
-            position: relative;
+            transform: rotateY(180deg);
         }
-        .card.red {
+        .card-front.red {
             color: #c41e3a;
         }
-        .card.black {
+        .card-front.black {
             color: #1a1a2e;
         }
-        .card.hidden {
+        .card-back {
             background: linear-gradient(135deg, #5c3d8c 0%, #3d2066 100%);
             border: 2px solid #9b6dd1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        .card.hidden::after {
-            content: "?";
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 2rem;
-            color: #c9b0e8;
+        .card-back::before {
+            content: "";
+            width: 50px;
+            height: 70px;
+            border: 2px solid #9b6dd1;
+            border-radius: 4px;
+            background: repeating-linear-gradient(
+                45deg,
+                #4a2c7a,
+                #4a2c7a 5px,
+                #3d2066 5px,
+                #3d2066 10px
+            );
         }
         .card-corner {
             line-height: 1;
@@ -220,6 +319,10 @@
             font-size: 0.85rem;
             cursor: pointer;
             transition: transform 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
         }
         .chip:hover {
             transform: scale(1.1);
@@ -268,13 +371,13 @@
     </style>
 </head>
 <body>
-    <h1>♠ Blackjack ♥</h1>
+    <h1>♠ Purplejack ♥</h1>
 
     <div class="game-container">
         <div class="info-bar">
-            <div class="info-item">
+            <div class="info-item bankroll-container" id="bankroll-container">
                 <div class="info-label">Bankroll</div>
-                <div class="info-value">$<span id="bankroll">1000</span></div>
+                <div class="info-value" id="bankroll-value">$<span id="bankroll">1000</span></div>
             </div>
             <div class="info-item">
                 <div class="info-label">Current Bet</div>
@@ -395,8 +498,8 @@
             return value;
         }
 
-        // Check if hand is a Blackjack (natural 21 with 2 cards)
-        function isBlackjack(hand) {
+        // Check if hand is a Purplejack (natural 21 with 2 cards)
+        function isPurplejack(hand) {
             return hand.length === 2 && calculateHandValue(hand) === 21;
         }
 
@@ -410,37 +513,42 @@
         }
 
         // Render a card
-        function renderCard(card, hidden = false) {
-            if (hidden) {
-                return '<div class="card hidden"></div>';
-            }
+        function renderCard(card, hidden = false, animate = false) {
             const isRed = card.suit === '♥' || card.suit === '♦';
             const colorClass = isRed ? 'red' : 'black';
+            const flipClass = hidden ? '' : 'flipped';
+            const animClass = animate ? 'deal-animation' : flipClass;
+
             return `
-                <div class="card ${colorClass}">
-                    <div class="card-corner">${card.rank}${card.suit}</div>
-                    <div class="card-corner bottom">${card.rank}${card.suit}</div>
+                <div class="card-container">
+                    <div class="card ${animClass}">
+                        <div class="card-back card-face"></div>
+                        <div class="card-front card-face ${colorClass}">
+                            <div class="card-corner">${card.rank}${card.suit}</div>
+                            <div class="card-corner bottom">${card.rank}${card.suit}</div>
+                        </div>
+                    </div>
                 </div>
             `;
         }
 
         // Update the display
-        function updateDisplay(hideDealer = true) {
+        function updateDisplay(hideDealer = true, animate = false) {
             // Render dealer cards
             const dealerCardsEl = document.getElementById('dealer-cards');
             let dealerHTML = '';
             dealerHand.forEach((card, index) => {
                 if (hideDealer && index === 1) {
-                    dealerHTML += renderCard(card, true);
+                    dealerHTML += renderCard(card, true, false);
                 } else {
-                    dealerHTML += renderCard(card);
+                    dealerHTML += renderCard(card, false, animate);
                 }
             });
             dealerCardsEl.innerHTML = dealerHTML;
 
             // Render player cards
             const playerCardsEl = document.getElementById('player-cards');
-            playerCardsEl.innerHTML = playerHand.map(card => renderCard(card)).join('');
+            playerCardsEl.innerHTML = playerHand.map(card => renderCard(card, false, animate)).join('');
 
             // Update values
             const playerValue = calculateHandValue(playerHand);
@@ -454,6 +562,60 @@
             document.getElementById('current-bet').textContent = currentBet;
             document.getElementById('wins').textContent = wins;
             document.getElementById('losses').textContent = losses;
+        }
+
+        // Flip the dealer's hidden card with animation
+        function revealDealerCard() {
+            const dealerCardsEl = document.getElementById('dealer-cards');
+            const hiddenCard = dealerCardsEl.querySelectorAll('.card')[1];
+            if (hiddenCard && !hiddenCard.classList.contains('flipped')) {
+                hiddenCard.classList.add('flipped');
+            }
+        }
+
+        // Create fireworks around the bankroll
+        function createFireworks() {
+            const container = document.getElementById('bankroll-container');
+            const bankrollValue = document.getElementById('bankroll-value');
+            const colors = ['#ffd700', '#ff6600', '#ff00ff', '#00ff00', '#00ffff', '#ff0066'];
+
+            // Add glow effect to bankroll
+            bankrollValue.classList.add('win-glow');
+            setTimeout(() => bankrollValue.classList.remove('win-glow'), 1000);
+
+            // Create multiple firework bursts
+            for (let burst = 0; burst < 3; burst++) {
+                setTimeout(() => {
+                    for (let i = 0; i < 12; i++) {
+                        const firework = document.createElement('div');
+                        firework.className = 'firework';
+                        const angle = (i / 12) * Math.PI * 2;
+                        const distance = 40 + Math.random() * 30;
+                        const tx = Math.cos(angle) * distance;
+                        const ty = Math.sin(angle) * distance;
+                        firework.style.setProperty('--tx', tx + 'px');
+                        firework.style.setProperty('--ty', ty + 'px');
+                        firework.style.background = colors[Math.floor(Math.random() * colors.length)];
+                        firework.style.left = '50%';
+                        firework.style.top = '50%';
+                        firework.style.animationDelay = (Math.random() * 0.2) + 's';
+                        container.appendChild(firework);
+                        setTimeout(() => firework.remove(), 1200);
+                    }
+                }, burst * 200);
+            }
+
+            // Add sparkles
+            for (let i = 0; i < 8; i++) {
+                setTimeout(() => {
+                    const sparkle = document.createElement('div');
+                    sparkle.className = 'sparkle';
+                    sparkle.style.left = (20 + Math.random() * 60) + '%';
+                    sparkle.style.top = (20 + Math.random() * 60) + '%';
+                    container.appendChild(sparkle);
+                    setTimeout(() => sparkle.remove(), 600);
+                }, Math.random() * 500);
+            }
         }
 
         // Show message
@@ -496,45 +658,95 @@
             createDeck();
             shuffleDeck();
 
-            // Deal initial cards
-            playerHand = [dealCard(), dealCard()];
-            dealerHand = [dealCard(), dealCard()];
+            // Deal initial cards with animation
+            playerHand = [];
+            dealerHand = [];
 
             hideMessage();
-            updateDisplay(true);
 
             // Show/hide controls
             document.getElementById('betting-controls').style.display = 'none';
             document.getElementById('game-controls').style.display = 'flex';
             document.getElementById('end-controls').style.display = 'none';
 
-            // Check for immediate blackjacks
-            const playerBJ = isBlackjack(playerHand);
-            const dealerBJ = isBlackjack(dealerHand);
+            // Disable buttons during deal
+            document.getElementById('hit-btn').disabled = true;
+            document.getElementById('stand-btn').disabled = true;
 
-            if (playerBJ || dealerBJ) {
-                // Reveal dealer's hand
-                updateDisplay(false);
-                endGame(playerBJ, dealerBJ);
+            // Deal cards sequentially with animation
+            const cards = [
+                { target: 'player', card: dealCard() },
+                { target: 'dealer', card: dealCard() },
+                { target: 'player', card: dealCard() },
+                { target: 'dealer', card: dealCard() }
+            ];
+
+            let dealIndex = 0;
+            function dealNextCard() {
+                if (dealIndex < cards.length) {
+                    const { target, card } = cards[dealIndex];
+                    if (target === 'player') {
+                        playerHand.push(card);
+                    } else {
+                        dealerHand.push(card);
+                    }
+                    updateDisplay(true, true);
+                    dealIndex++;
+                    setTimeout(dealNextCard, 300);
+                } else {
+                    // All cards dealt, enable controls
+                    document.getElementById('hit-btn').disabled = false;
+                    document.getElementById('stand-btn').disabled = false;
+
+                    // Check for immediate blackjacks
+                    const playerBJ = isPurplejack(playerHand);
+                    const dealerBJ = isPurplejack(dealerHand);
+
+                    if (playerBJ || dealerBJ) {
+                        // Reveal dealer's hand
+                        setTimeout(() => {
+                            revealDealerCard();
+                            setTimeout(() => {
+                                updateDisplay(false);
+                                endGame(playerBJ, dealerBJ);
+                            }, 600);
+                        }, 300);
+                    }
+                }
             }
+
+            dealNextCard();
         }
 
         // Player hits
         function hit() {
-            playerHand.push(dealCard());
-            updateDisplay(true);
+            document.getElementById('hit-btn').disabled = true;
+            document.getElementById('stand-btn').disabled = true;
 
-            const playerValue = calculateHandValue(playerHand);
-            if (playerValue > 21) {
-                // Player busts
-                updateDisplay(false);
-                losses++;
-                showMessage('Bust! You lose $' + currentBet, 'lose');
-                endRound();
-            } else if (playerValue === 21) {
-                // Auto-stand on 21
-                stand();
-            }
+            playerHand.push(dealCard());
+            updateDisplay(true, true);
+
+            // Wait for animation to complete
+            setTimeout(() => {
+                const playerValue = calculateHandValue(playerHand);
+                if (playerValue > 21) {
+                    // Player busts
+                    revealDealerCard();
+                    setTimeout(() => {
+                        updateDisplay(false);
+                        losses++;
+                        showMessage('Bust! You lose $' + currentBet, 'lose');
+                        endRound();
+                    }, 600);
+                } else if (playerValue === 21) {
+                    // Auto-stand on 21
+                    stand();
+                } else {
+                    // Re-enable buttons
+                    document.getElementById('hit-btn').disabled = false;
+                    document.getElementById('stand-btn').disabled = false;
+                }
+            }, 600);
         }
 
         // Player stands
@@ -543,26 +755,33 @@
             document.getElementById('hit-btn').disabled = true;
             document.getElementById('stand-btn').disabled = true;
 
-            // Reveal dealer's hole card
-            updateDisplay(false);
+            // Reveal dealer's hole card with animation
+            revealDealerCard();
 
-            // Dealer draws
-            dealerPlay();
+            // Wait for flip animation, then dealer plays
+            setTimeout(() => {
+                updateDisplay(false);
+                dealerPlay();
+            }, 600);
         }
 
         // Dealer's turn
         function dealerPlay() {
             let dealerValue = calculateHandValue(dealerHand);
 
-            // Dealer hits on 16 or less
-            while (dealerValue < 17) {
-                dealerHand.push(dealCard());
-                dealerValue = calculateHandValue(dealerHand);
-                updateDisplay(false);
+            function dealerDrawNext() {
+                if (dealerValue < 17) {
+                    dealerHand.push(dealCard());
+                    updateDisplay(false, true);
+                    dealerValue = calculateHandValue(dealerHand);
+                    setTimeout(dealerDrawNext, 700);
+                } else {
+                    // Determine winner
+                    setTimeout(determineWinner, 300);
+                }
             }
 
-            // Determine winner
-            determineWinner();
+            dealerDrawNext();
         }
 
         // End game for blackjack scenarios
@@ -570,17 +789,18 @@
             if (playerBJ && dealerBJ) {
                 // Both have blackjack - Push
                 bankroll += currentBet;
-                showMessage('Both have Blackjack! Push - Bet returned', 'push');
+                showMessage('Both have Purplejack! Push - Bet returned', 'push');
             } else if (playerBJ) {
                 // Player has blackjack - 3:2 payout
                 const winnings = Math.floor(currentBet * 2.5);
                 bankroll += winnings;
                 wins++;
-                showMessage('Blackjack! You win $' + (winnings - currentBet) + '!', 'blackjack');
+                showMessage('Purplejack! You win $' + (winnings - currentBet) + '!', 'blackjack');
+                createFireworks();
             } else if (dealerBJ) {
                 // Dealer has blackjack
                 losses++;
-                showMessage('Dealer has Blackjack! You lose $' + currentBet, 'lose');
+                showMessage('Dealer has Purplejack! You lose $' + currentBet, 'lose');
             }
             endRound();
         }
@@ -595,11 +815,13 @@
                 bankroll += currentBet * 2;
                 wins++;
                 showMessage('Dealer busts! You win $' + currentBet + '!', 'win');
+                createFireworks();
             } else if (playerValue > dealerValue) {
                 // Player wins
                 bankroll += currentBet * 2;
                 wins++;
                 showMessage('You win $' + currentBet + '!', 'win');
+                createFireworks();
             } else if (dealerValue > playerValue) {
                 // Dealer wins
                 losses++;
