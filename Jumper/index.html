@@ -12,6 +12,7 @@
         }
         body {
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
@@ -19,11 +20,67 @@
             font-family: 'Arial', sans-serif;
             overflow: hidden;
         }
+        #menuScreen {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 800px;
+            height: 500px;
+            background:
+                linear-gradient(to bottom, rgba(135, 206, 235, 0.9), rgba(34, 139, 34, 0.8)),
+                repeating-linear-gradient(90deg, transparent, transparent 50px, rgba(0,100,0,0.1) 50px, rgba(0,100,0,0.1) 100px);
+            border: 4px solid #4a2c0a;
+            border-radius: 8px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.6);
+            position: relative;
+            overflow: hidden;
+            color: white;
+            text-align: center;
+        }
+        #menuScreen::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 120px;
+            background: linear-gradient(to bottom, #228B22, #1B4D1B);
+            z-index: 0;
+        }
+        #menuScreen::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: linear-gradient(to bottom, #8B4513, #654321);
+            z-index: 1;
+        }
+        #menuScreen > * {
+            position: relative;
+            z-index: 2;
+        }
+        #menuScreen.hidden {
+            display: none;
+        }
+        #gameWrapper {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+        #gameWrapper.active {
+            display: flex;
+        }
         #gameContainer {
             position: relative;
             border: 4px solid #4a2c0a;
             border-radius: 8px;
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        #gameControls {
+            margin-top: 10px;
         }
         #gameCanvas {
             display: block;
@@ -42,7 +99,28 @@
             text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
             pointer-events: none;
         }
-        #overlay {
+        #menuScreen h1 {
+            font-size: 48px;
+            color: #FFD700;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.7);
+            margin-bottom: 15px;
+        }
+        #menuScreen p {
+            font-size: 20px;
+            margin: 8px 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        #menuScreen .instructions {
+            font-size: 16px;
+            color: #eee;
+            margin-top: 10px;
+        }
+        #menuScreen .high-score {
+            font-size: 24px;
+            color: #FFD700;
+            margin: 10px 0;
+        }
+        #gameOverOverlay {
             position: absolute;
             top: 0;
             left: 0;
@@ -56,33 +134,27 @@
             color: white;
             text-align: center;
         }
-        #overlay.hidden {
+        #gameOverOverlay.hidden {
             display: none;
         }
-        #overlay h1 {
-            font-size: 48px;
-            color: #FFD700;
-            text-shadow: 3px 3px 6px rgba(0,0,0,0.5);
-            margin-bottom: 20px;
-        }
-        #overlay h2 {
+        #gameOverOverlay h2 {
             font-size: 32px;
             color: #FF6B6B;
             margin-bottom: 10px;
         }
-        #overlay p {
+        #gameOverOverlay p {
             font-size: 20px;
             margin: 10px 0;
         }
-        #overlay .score-display {
+        #gameOverOverlay .score-display {
             font-size: 24px;
             color: #90EE90;
             margin: 5px 0;
         }
-        #overlay .high-score {
+        #gameOverOverlay .high-score {
             color: #FFD700;
         }
-        #overlay .new-record {
+        #gameOverOverlay .new-record {
             color: #FF69B4;
             font-size: 28px;
             animation: pulse 0.5s ease-in-out infinite alternate;
@@ -91,12 +163,7 @@
             from { transform: scale(1); }
             to { transform: scale(1.1); }
         }
-        #overlay .instructions {
-            font-size: 16px;
-            color: #ccc;
-            margin-top: 20px;
-        }
-        #startBtn, #restartBtn {
+        #startBtn, #restartBtn, #menuBtn {
             margin-top: 20px;
             padding: 15px 40px;
             font-size: 20px;
@@ -109,20 +176,20 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             transition: transform 0.1s, box-shadow 0.1s;
         }
-        #startBtn:hover, #restartBtn:hover {
+        #startBtn:hover, #restartBtn:hover, #menuBtn:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 8px rgba(0,0,0,0.4);
         }
-        #startBtn:active, #restartBtn:active {
+        #startBtn:active, #restartBtn:active, #menuBtn:active {
             transform: translateY(0);
             box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
+        #menuBtn {
+            background: linear-gradient(to bottom, #2196F3, #1976D2);
+        }
         #pauseBtn {
-            position: absolute;
-            top: 10px;
-            right: 120px;
-            padding: 8px 16px;
-            font-size: 14px;
+            padding: 10px 25px;
+            font-size: 16px;
             font-weight: bold;
             background: linear-gradient(to bottom, #FF9800, #F57C00);
             color: white;
@@ -130,13 +197,9 @@
             border-radius: 5px;
             cursor: pointer;
             box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            z-index: 10;
         }
         #pauseBtn:hover {
             background: linear-gradient(to bottom, #FFB74D, #FF9800);
-        }
-        #pauseBtn.hidden {
-            display: none;
         }
         .difficulty-selector {
             display: flex;
@@ -170,11 +233,6 @@
         .difficulty-btn.selected {
             border-color: #FFD700;
             box-shadow: 0 0 10px #FFD700;
-        }
-        .difficulty-label {
-            font-size: 14px;
-            color: #ccc;
-            margin-top: 5px;
         }
         #pauseOverlay {
             position: absolute;
@@ -218,41 +276,40 @@
     </style>
 </head>
 <body>
-    <div id="gameContainer">
-        <canvas id="gameCanvas" width="800" height="400"></canvas>
-        <div id="ui">
-            <span id="scoreDisplay">Score: 0</span>
-            <span id="highScoreDisplay">High Score: 0</span>
+    <!-- Menu Screen -->
+    <div id="menuScreen">
+        <h1>🐵 MONKEY JUMPER 🐵</h1>
+        <p>Help the monkey escape through the jungle!</p>
+        <p class="instructions">Press SPACE to jump over snakes</p>
+        <p class="instructions">Collect bananas for bonus points!</p>
+        <p style="margin-top: 15px; font-size: 18px;">Select Difficulty:</p>
+        <div class="difficulty-selector">
+            <button class="difficulty-btn easy" data-difficulty="easy">EASY</button>
+            <button class="difficulty-btn normal selected" data-difficulty="normal">NORMAL</button>
+            <button class="difficulty-btn hard" data-difficulty="hard">HARD</button>
         </div>
-        <button id="pauseBtn" class="hidden">⏸ PAUSE</button>
-        <div id="overlay">
-            <h1>🐵 MONKEY JUMPER 🐵</h1>
-            <p>Help the monkey escape through the jungle!</p>
-            <p class="instructions">Press SPACE to jump over snakes</p>
-            <p class="instructions">Collect bananas for bonus points!</p>
-            <p style="margin-top: 15px; font-size: 18px;">Select Difficulty:</p>
-            <div class="difficulty-selector">
-                <div style="text-align: center;">
-                    <button class="difficulty-btn easy" data-difficulty="easy">EASY</button>
-                    <p class="difficulty-label">Slower, No Rivers</p>
-                </div>
-                <div style="text-align: center;">
-                    <button class="difficulty-btn normal selected" data-difficulty="normal">NORMAL</button>
-                    <p class="difficulty-label">Standard Speed</p>
-                </div>
-                <div style="text-align: center;">
-                    <button class="difficulty-btn hard" data-difficulty="hard">HARD</button>
-                    <p class="difficulty-label">Faster, More Rivers</p>
-                </div>
+        <p class="high-score" id="menuHighScore">High Score: 0</p>
+        <button id="startBtn">START GAME</button>
+    </div>
+
+    <!-- Game Wrapper -->
+    <div id="gameWrapper">
+        <div id="gameContainer">
+            <canvas id="gameCanvas" width="800" height="400"></canvas>
+            <div id="ui">
+                <span id="scoreDisplay">Score: 0</span>
+                <span id="highScoreDisplay">High Score: 0</span>
             </div>
-            <p class="score-display high-score" id="menuHighScore">High Score: 0</p>
-            <button id="startBtn">START GAME</button>
+            <div id="gameOverOverlay" class="hidden"></div>
+            <div id="pauseOverlay" class="hidden">
+                <h2>⏸ PAUSED</h2>
+                <p>Press SPACE or ESC to resume</p>
+                <button id="resumeBtn">▶ RESUME</button>
+                <button id="quitBtn">✖ QUIT TO MENU</button>
+            </div>
         </div>
-        <div id="pauseOverlay" class="hidden">
-            <h2>⏸ PAUSED</h2>
-            <p>Press SPACE or ESC to resume</p>
-            <button id="resumeBtn">▶ RESUME</button>
-            <button id="quitBtn">✖ QUIT TO MENU</button>
+        <div id="gameControls">
+            <button id="pauseBtn">⏸ PAUSE</button>
         </div>
     </div>
 
@@ -1588,8 +1645,9 @@
             DifficultyManager.reset();
             AudioManager.init();
 
-            document.getElementById('overlay').classList.add('hidden');
-            document.getElementById('pauseBtn').classList.remove('hidden');
+            document.getElementById('menuScreen').classList.add('hidden');
+            document.getElementById('gameWrapper').classList.add('active');
+            document.getElementById('gameOverOverlay').classList.add('hidden');
             document.getElementById('pauseBtn').textContent = '⏸ PAUSE';
         }
 
@@ -1603,7 +1661,7 @@
         }
 
         function showGameOver() {
-            const overlay = document.getElementById('overlay');
+            const overlay = document.getElementById('gameOverOverlay');
             overlay.innerHTML = `
                 <h2>GAME OVER</h2>
                 <p class="score-display">Score: ${Math.floor(score)}</p>
@@ -1611,16 +1669,18 @@
                 ${isNewRecord ? '<p class="new-record">🎉 NEW RECORD! 🎉</p>' : ''}
                 <p>Level Reached: ${DifficultyManager.level}</p>
                 <button id="restartBtn">PLAY AGAIN</button>
+                <button id="menuBtn" style="margin-top: 10px;">MAIN MENU</button>
             `;
             overlay.classList.remove('hidden');
 
             document.getElementById('restartBtn').addEventListener('click', startGame);
+            document.getElementById('menuBtn').addEventListener('click', quitToMenu);
         }
 
         function showMenu() {
-            const overlay = document.getElementById('overlay');
             document.getElementById('menuHighScore').textContent = `High Score: ${highScore}`;
-            overlay.classList.remove('hidden');
+            document.getElementById('menuScreen').classList.remove('hidden');
+            document.getElementById('gameWrapper').classList.remove('active');
         }
 
         // ============================================
@@ -1656,7 +1716,7 @@
         function quitToMenu() {
             currentState = GameState.MENU;
             document.getElementById('pauseOverlay').classList.add('hidden');
-            document.getElementById('pauseBtn').classList.add('hidden');
+            document.getElementById('gameOverOverlay').classList.add('hidden');
             showMenu();
         }
 
