@@ -117,6 +117,104 @@
             transform: translateY(0);
             box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
+        #pauseBtn {
+            position: absolute;
+            top: 10px;
+            right: 120px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: bold;
+            background: linear-gradient(to bottom, #FF9800, #F57C00);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+        #pauseBtn:hover {
+            background: linear-gradient(to bottom, #FFB74D, #FF9800);
+        }
+        #pauseBtn.hidden {
+            display: none;
+        }
+        .difficulty-selector {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .difficulty-btn {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border: 3px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .difficulty-btn.easy {
+            background: linear-gradient(to bottom, #4CAF50, #388E3C);
+            color: white;
+        }
+        .difficulty-btn.normal {
+            background: linear-gradient(to bottom, #2196F3, #1976D2);
+            color: white;
+        }
+        .difficulty-btn.hard {
+            background: linear-gradient(to bottom, #f44336, #D32F2F);
+            color: white;
+        }
+        .difficulty-btn:hover {
+            transform: scale(1.05);
+        }
+        .difficulty-btn.selected {
+            border-color: #FFD700;
+            box-shadow: 0 0 10px #FFD700;
+        }
+        .difficulty-label {
+            font-size: 14px;
+            color: #ccc;
+            margin-top: 5px;
+        }
+        #pauseOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            z-index: 20;
+        }
+        #pauseOverlay.hidden {
+            display: none;
+        }
+        #pauseOverlay h2 {
+            font-size: 48px;
+            color: #FFD700;
+            margin-bottom: 20px;
+        }
+        #resumeBtn, #quitBtn {
+            margin: 10px;
+            padding: 12px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        #resumeBtn {
+            background: linear-gradient(to bottom, #4CAF50, #2E7D32);
+            color: white;
+        }
+        #quitBtn {
+            background: linear-gradient(to bottom, #f44336, #D32F2F);
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -126,13 +224,35 @@
             <span id="scoreDisplay">Score: 0</span>
             <span id="highScoreDisplay">High Score: 0</span>
         </div>
+        <button id="pauseBtn" class="hidden">⏸ PAUSE</button>
         <div id="overlay">
             <h1>🐵 MONKEY JUMPER 🐵</h1>
             <p>Help the monkey escape through the jungle!</p>
             <p class="instructions">Press SPACE to jump over snakes</p>
             <p class="instructions">Collect bananas for bonus points!</p>
+            <p style="margin-top: 15px; font-size: 18px;">Select Difficulty:</p>
+            <div class="difficulty-selector">
+                <div style="text-align: center;">
+                    <button class="difficulty-btn easy" data-difficulty="easy">EASY</button>
+                    <p class="difficulty-label">Slower, No Rivers</p>
+                </div>
+                <div style="text-align: center;">
+                    <button class="difficulty-btn normal selected" data-difficulty="normal">NORMAL</button>
+                    <p class="difficulty-label">Standard Speed</p>
+                </div>
+                <div style="text-align: center;">
+                    <button class="difficulty-btn hard" data-difficulty="hard">HARD</button>
+                    <p class="difficulty-label">Faster, More Rivers</p>
+                </div>
+            </div>
             <p class="score-display high-score" id="menuHighScore">High Score: 0</p>
             <button id="startBtn">START GAME</button>
+        </div>
+        <div id="pauseOverlay" class="hidden">
+            <h2>⏸ PAUSED</h2>
+            <p>Press SPACE or ESC to resume</p>
+            <button id="resumeBtn">▶ RESUME</button>
+            <button id="quitBtn">✖ QUIT TO MENU</button>
         </div>
     </div>
 
@@ -248,8 +368,15 @@
             level: 1,
             lastLevelUp: 0,
             levelUpInterval: 10000, // 10 seconds
+            speedIncrement: 0.5,
+            spawnRateDecrement: 100,
 
             reset() {
+                const settings = DifficultySettings[selectedDifficulty];
+                this.baseSpeed = settings.baseSpeed;
+                this.baseSpawnRate = settings.baseSpawnRate;
+                this.speedIncrement = settings.speedIncrement;
+                this.spawnRateDecrement = settings.spawnRateDecrement;
                 this.currentSpeed = this.baseSpeed;
                 this.currentSpawnRate = this.baseSpawnRate;
                 this.level = 1;
@@ -259,8 +386,8 @@
             update(elapsedTime) {
                 if (elapsedTime - this.lastLevelUp >= this.levelUpInterval) {
                     this.level++;
-                    this.currentSpeed = this.baseSpeed + (this.level - 1) * 0.5;
-                    this.currentSpawnRate = Math.max(500, this.baseSpawnRate - (this.level - 1) * 100);
+                    this.currentSpeed = this.baseSpeed + (this.level - 1) * this.speedIncrement;
+                    this.currentSpawnRate = Math.max(500, this.baseSpawnRate - (this.level - 1) * this.spawnRateDecrement);
                     this.lastLevelUp = elapsedTime;
                     return true; // Level up occurred
                 }
@@ -274,6 +401,7 @@
         const GameState = {
             MENU: 'menu',
             PLAYING: 'playing',
+            PAUSED: 'paused',
             GAME_OVER: 'gameOver'
         };
 
@@ -283,6 +411,43 @@
         let isNewRecord = false;
         let gameStartTime = 0;
         let lastTime = 0;
+        let pauseStartTime = 0;
+        let totalPausedTime = 0;
+
+        // ============================================
+        // Difficulty Settings
+        // ============================================
+        const DifficultySettings = {
+            easy: {
+                baseSpeed: 4,
+                baseSpawnRate: 1800,
+                speedIncrement: 0.3,
+                spawnRateDecrement: 80,
+                enableRivers: false,
+                riverSpawnScore: Infinity,
+                riverInterval: Infinity
+            },
+            normal: {
+                baseSpeed: 5,
+                baseSpawnRate: 1500,
+                speedIncrement: 0.5,
+                spawnRateDecrement: 100,
+                enableRivers: true,
+                riverSpawnScore: 150,
+                riverInterval: 8000
+            },
+            hard: {
+                baseSpeed: 6.5,
+                baseSpawnRate: 1200,
+                speedIncrement: 0.6,
+                spawnRateDecrement: 120,
+                enableRivers: true,
+                riverSpawnScore: 75,
+                riverInterval: 5000
+            }
+        };
+
+        let selectedDifficulty = 'normal';
 
         // ============================================
         // PATTERN CHUNK 3: Player Character (Monkey)
@@ -751,8 +916,6 @@
         let rivers = [];
         let platforms = [];
         let lastRiverSpawn = 0;
-        const RIVER_SPAWN_SCORE = 150;
-        const RIVER_SPAWN_INTERVAL = 8000; // 8 seconds between rivers
 
         function spawnRiver() {
             const riverWidth = 200;
@@ -776,9 +939,11 @@
         }
 
         function updateRivers(deltaTime, currentTime) {
-            // Only spawn rivers after score reaches threshold
-            if (score >= RIVER_SPAWN_SCORE) {
-                if (currentTime - lastRiverSpawn > RIVER_SPAWN_INTERVAL) {
+            const settings = DifficultySettings[selectedDifficulty];
+
+            // Only spawn rivers if enabled for this difficulty
+            if (settings.enableRivers && score >= settings.riverSpawnScore) {
+                if (currentTime - lastRiverSpawn > settings.riverInterval) {
                     spawnRiver();
                     lastRiverSpawn = currentTime;
                 }
@@ -1336,7 +1501,7 @@
             lastTime = timestamp;
 
             if (currentState === GameState.PLAYING) {
-                const elapsedTime = timestamp - gameStartTime;
+                const elapsedTime = timestamp - gameStartTime - totalPausedTime;
 
                 // Update difficulty
                 DifficultyManager.update(elapsedTime);
@@ -1385,6 +1550,15 @@
 
                 // Update UI
                 updateUI();
+            } else if (currentState === GameState.PAUSED) {
+                // Keep drawing the current frame but don't update
+                drawBackground();
+                rivers.forEach(drawRiver);
+                platforms.forEach(drawPlatform);
+                snakes.forEach(drawSnake);
+                bananas.forEach(drawBanana);
+                monkey.draw();
+                updateUI();
             }
 
             requestAnimationFrame(gameLoop);
@@ -1405,6 +1579,8 @@
             lastRiverSpawn = 0;
             nextSnakeDelay = 1500;
             timeOfDay = 0;
+            totalPausedTime = 0;
+            pauseStartTime = 0;
             gameStartTime = performance.now();
             isNewRecord = false;
 
@@ -1413,6 +1589,8 @@
             AudioManager.init();
 
             document.getElementById('overlay').classList.add('hidden');
+            document.getElementById('pauseBtn').classList.remove('hidden');
+            document.getElementById('pauseBtn').textContent = '⏸ PAUSE';
         }
 
         function endGame() {
@@ -1448,21 +1626,85 @@
         // ============================================
         // PATTERN CHUNK 4: Jump Mechanics (Input)
         // ============================================
+        function pauseGame() {
+            if (currentState === GameState.PLAYING) {
+                currentState = GameState.PAUSED;
+                pauseStartTime = performance.now();
+                document.getElementById('pauseOverlay').classList.remove('hidden');
+                document.getElementById('pauseBtn').textContent = '▶ RESUME';
+            }
+        }
+
+        function resumeGame() {
+            if (currentState === GameState.PAUSED) {
+                totalPausedTime += performance.now() - pauseStartTime;
+                currentState = GameState.PLAYING;
+                document.getElementById('pauseOverlay').classList.add('hidden');
+                document.getElementById('pauseBtn').textContent = '⏸ PAUSE';
+                lastTime = performance.now();
+            }
+        }
+
+        function togglePause() {
+            if (currentState === GameState.PLAYING) {
+                pauseGame();
+            } else if (currentState === GameState.PAUSED) {
+                resumeGame();
+            }
+        }
+
+        function quitToMenu() {
+            currentState = GameState.MENU;
+            document.getElementById('pauseOverlay').classList.add('hidden');
+            document.getElementById('pauseBtn').classList.add('hidden');
+            showMenu();
+        }
+
         document.addEventListener('keydown', (e) => {
             if (e.code === 'Space') {
                 e.preventDefault();
                 if (currentState === GameState.PLAYING) {
                     monkey.jump();
+                } else if (currentState === GameState.PAUSED) {
+                    resumeGame();
                 } else if (currentState === GameState.MENU) {
                     startGame();
                 } else if (currentState === GameState.GAME_OVER) {
                     startGame();
                 }
             }
+
+            // Pause with Escape or P key
+            if (e.code === 'Escape' || e.code === 'KeyP') {
+                if (currentState === GameState.PLAYING || currentState === GameState.PAUSED) {
+                    togglePause();
+                }
+            }
         });
 
         // Start button
         document.getElementById('startBtn').addEventListener('click', startGame);
+
+        // Pause button
+        document.getElementById('pauseBtn').addEventListener('click', togglePause);
+
+        // Resume button
+        document.getElementById('resumeBtn').addEventListener('click', resumeGame);
+
+        // Quit button
+        document.getElementById('quitBtn').addEventListener('click', quitToMenu);
+
+        // Difficulty selection buttons
+        document.querySelectorAll('.difficulty-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Remove selected from all buttons
+                document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('selected'));
+                // Add selected to clicked button
+                btn.classList.add('selected');
+                // Update selected difficulty
+                selectedDifficulty = btn.dataset.difficulty;
+            });
+        });
 
         // Initialize
         highScore = HighScoreManager.get();
