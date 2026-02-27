@@ -344,70 +344,174 @@
                     ctx.translate(this.x, this.y);
                 }
 
-                // Body (brown)
-                ctx.fillStyle = '#8B4513';
+                const legOffset = this.isJumping ? 0 : Math.sin(this.runFrame * Math.PI / 2) * 5;
+                const armSwing = this.isJumping ? -10 : Math.sin(this.runFrame * Math.PI / 2) * 8;
+
+                // Tail (behind body)
+                ctx.strokeStyle = '#5D4037';
+                ctx.lineWidth = 6;
+                ctx.lineCap = 'round';
                 ctx.beginPath();
-                ctx.ellipse(this.width / 2, this.height / 2 + 5, 20, 25, 0, 0, Math.PI * 2);
+                ctx.moveTo(8, this.height / 2 + 5);
+                ctx.quadraticCurveTo(-15, this.height / 2 + 10, -10, this.height / 2 - 10);
+                ctx.quadraticCurveTo(-5, this.height / 2 - 25, 5, this.height / 2 - 20);
+                ctx.stroke();
+
+                // Back arm (behind body)
+                ctx.fillStyle = '#6D4C41';
+                ctx.beginPath();
+                ctx.ellipse(this.width / 2 - 18, 38 - armSwing, 6, 14, -0.3, 0, Math.PI * 2);
+                ctx.fill();
+                // Back hand
+                ctx.fillStyle = '#BCAAA4';
+                ctx.beginPath();
+                ctx.arc(this.width / 2 - 20, 50 - armSwing, 5, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Back leg
+                ctx.fillStyle = '#6D4C41';
+                ctx.beginPath();
+                ctx.ellipse(this.width / 2 - 6, this.height - 8 - legOffset, 7, 12, 0, 0, Math.PI * 2);
+                ctx.fill();
+                // Back foot
+                ctx.fillStyle = '#4E342E';
+                ctx.beginPath();
+                ctx.ellipse(this.width / 2 - 6, this.height - legOffset, 8, 5, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Body (torso) with fur texture
+                ctx.fillStyle = '#795548';
+                ctx.beginPath();
+                ctx.ellipse(this.width / 2, this.height / 2 + 5, 16, 22, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Belly (lighter)
+                ctx.fillStyle = '#A1887F';
+                ctx.beginPath();
+                ctx.ellipse(this.width / 2 + 2, this.height / 2 + 8, 10, 14, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Front leg
+                ctx.fillStyle = '#6D4C41';
+                ctx.beginPath();
+                ctx.ellipse(this.width / 2 + 6, this.height - 8 + legOffset, 7, 12, 0, 0, Math.PI * 2);
+                ctx.fill();
+                // Front foot
+                ctx.fillStyle = '#4E342E';
+                ctx.beginPath();
+                ctx.ellipse(this.width / 2 + 8, this.height + legOffset, 8, 5, 0, 0, Math.PI * 2);
                 ctx.fill();
 
                 // Head
-                ctx.fillStyle = '#A0522D';
+                ctx.fillStyle = '#6D4C41';
                 ctx.beginPath();
-                ctx.arc(this.width / 2, 15, 18, 0, Math.PI * 2);
+                ctx.arc(this.width / 2, 18, 16, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Face (lighter)
-                ctx.fillStyle = '#DEB887';
+                // Fur tuft on top
+                ctx.fillStyle = '#5D4037';
                 ctx.beginPath();
-                ctx.ellipse(this.width / 2, 18, 12, 10, 0, 0, Math.PI * 2);
+                ctx.ellipse(this.width / 2, 4, 8, 5, 0, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Eyes
-                ctx.fillStyle = this.isDead ? 'red' : 'black';
+                // Face (muzzle area)
+                ctx.fillStyle = '#BCAAA4';
                 ctx.beginPath();
-                ctx.arc(this.width / 2 - 5, 14, 3, 0, Math.PI * 2);
-                ctx.arc(this.width / 2 + 5, 14, 3, 0, Math.PI * 2);
+                ctx.ellipse(this.width / 2, 22, 11, 9, 0, 0, Math.PI * 2);
                 ctx.fill();
 
                 // Ears
-                ctx.fillStyle = '#DEB887';
+                ctx.fillStyle = '#6D4C41';
                 ctx.beginPath();
-                ctx.arc(this.width / 2 - 16, 12, 6, 0, Math.PI * 2);
-                ctx.arc(this.width / 2 + 16, 12, 6, 0, Math.PI * 2);
+                ctx.arc(this.width / 2 - 14, 14, 7, 0, Math.PI * 2);
+                ctx.arc(this.width / 2 + 14, 14, 7, 0, Math.PI * 2);
+                ctx.fill();
+                // Inner ears
+                ctx.fillStyle = '#BCAAA4';
+                ctx.beginPath();
+                ctx.arc(this.width / 2 - 14, 14, 4, 0, Math.PI * 2);
+                ctx.arc(this.width / 2 + 14, 14, 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Eye sockets
+                ctx.fillStyle = '#4E342E';
+                ctx.beginPath();
+                ctx.ellipse(this.width / 2 - 6, 16, 5, 4, 0, 0, Math.PI * 2);
+                ctx.ellipse(this.width / 2 + 6, 16, 5, 4, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Eyes
+                ctx.fillStyle = this.isDead ? '#ff0000' : '#FFFFFF';
+                ctx.beginPath();
+                ctx.arc(this.width / 2 - 6, 16, 3.5, 0, Math.PI * 2);
+                ctx.arc(this.width / 2 + 6, 16, 3.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Pupils
+                if (!this.isDead) {
+                    ctx.fillStyle = '#1a1a1a';
+                    ctx.beginPath();
+                    ctx.arc(this.width / 2 - 5, 16, 2, 0, Math.PI * 2);
+                    ctx.arc(this.width / 2 + 7, 16, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    // Eye shine
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.beginPath();
+                    ctx.arc(this.width / 2 - 4, 15, 1, 0, Math.PI * 2);
+                    ctx.arc(this.width / 2 + 8, 15, 1, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    // X eyes when dead
+                    ctx.strokeStyle = '#1a1a1a';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(this.width / 2 - 8, 14);
+                    ctx.lineTo(this.width / 2 - 4, 18);
+                    ctx.moveTo(this.width / 2 - 4, 14);
+                    ctx.lineTo(this.width / 2 - 8, 18);
+                    ctx.moveTo(this.width / 2 + 4, 14);
+                    ctx.lineTo(this.width / 2 + 8, 18);
+                    ctx.moveTo(this.width / 2 + 8, 14);
+                    ctx.lineTo(this.width / 2 + 4, 18);
+                    ctx.stroke();
+                }
+
+                // Nose
+                ctx.fillStyle = '#4E342E';
+                ctx.beginPath();
+                ctx.ellipse(this.width / 2, 23, 4, 3, 0, 0, Math.PI * 2);
+                ctx.fill();
+                // Nostrils
+                ctx.fillStyle = '#3E2723';
+                ctx.beginPath();
+                ctx.arc(this.width / 2 - 1.5, 23, 1, 0, Math.PI * 2);
+                ctx.arc(this.width / 2 + 1.5, 23, 1, 0, Math.PI * 2);
                 ctx.fill();
 
                 // Mouth
-                ctx.strokeStyle = '#5D3A1A';
-                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#5D4037';
+                ctx.lineWidth = 1.5;
                 ctx.beginPath();
                 if (this.isDead) {
-                    ctx.arc(this.width / 2, 24, 4, 0, Math.PI, true);
+                    ctx.arc(this.width / 2, 29, 3, 0, Math.PI, true);
                 } else {
-                    ctx.arc(this.width / 2, 22, 4, 0, Math.PI);
+                    ctx.moveTo(this.width / 2, 26);
+                    ctx.lineTo(this.width / 2, 28);
+                    ctx.moveTo(this.width / 2 - 4, 29);
+                    ctx.quadraticCurveTo(this.width / 2, 31, this.width / 2 + 4, 29);
                 }
                 ctx.stroke();
 
-                // Legs (animated)
-                ctx.fillStyle = '#8B4513';
-                const legOffset = this.isJumping ? 0 : Math.sin(this.runFrame * Math.PI / 2) * 5;
-
-                // Left leg
-                ctx.fillRect(this.width / 2 - 12, this.height - 15 + legOffset, 8, 15);
-                // Right leg
-                ctx.fillRect(this.width / 2 + 4, this.height - 15 - legOffset, 8, 15);
-
-                // Arms
-                const armY = this.isJumping ? -5 : 0;
-                ctx.fillRect(this.width / 2 - 25, 30 + armY, 10, 20);
-                ctx.fillRect(this.width / 2 + 15, 30 + armY, 10, 20);
-
-                // Tail
-                ctx.strokeStyle = '#8B4513';
-                ctx.lineWidth = 4;
+                // Front arm
+                ctx.fillStyle = '#6D4C41';
                 ctx.beginPath();
-                ctx.moveTo(this.width / 2 - 15, this.height / 2 + 10);
-                ctx.quadraticCurveTo(-10, this.height / 2, -5, this.height / 2 - 15);
-                ctx.stroke();
+                ctx.ellipse(this.width / 2 + 18, 38 + armSwing, 6, 14, 0.3, 0, Math.PI * 2);
+                ctx.fill();
+                // Front hand
+                ctx.fillStyle = '#BCAAA4';
+                ctx.beginPath();
+                ctx.arc(this.width / 2 + 20, 50 + armSwing, 5, 0, Math.PI * 2);
+                ctx.fill();
 
                 ctx.restore();
             },
@@ -427,6 +531,22 @@
         // ============================================
         let snakes = [];
         let lastSnakeSpawn = 0;
+        let nextSnakeDelay = 1500;
+
+        function getRandomSnakeDelay() {
+            const baseRate = DifficultyManager.currentSpawnRate;
+            // Random variance: 50% to 180% of base rate for variety
+            const variance = 0.5 + Math.random() * 1.3;
+            // Occasionally create tight clusters (20% chance of quick follow-up)
+            if (Math.random() < 0.2) {
+                return baseRate * 0.4; // Quick follow-up snake
+            }
+            // Occasionally create longer gaps (15% chance)
+            if (Math.random() < 0.15) {
+                return baseRate * 1.8; // Longer gap
+            }
+            return baseRate * variance;
+        }
 
         function spawnSnake() {
             snakes.push({
@@ -439,10 +559,11 @@
         }
 
         function updateSnakes(deltaTime, currentTime) {
-            // Spawn new snakes
-            if (currentTime - lastSnakeSpawn > DifficultyManager.currentSpawnRate) {
+            // Spawn new snakes with varied timing
+            if (currentTime - lastSnakeSpawn > nextSnakeDelay) {
                 spawnSnake();
                 lastSnakeSpawn = currentTime;
+                nextSnakeDelay = getRandomSnakeDelay();
             }
 
             // Update positions
@@ -458,8 +579,8 @@
             ctx.save();
             ctx.translate(snake.x, snake.y);
 
-            // Body segments (wavy)
-            ctx.fillStyle = '#228B22';
+            // Body segments (wavy) - Red snake
+            ctx.fillStyle = '#CC2222';
             for (let i = 0; i < 5; i++) {
                 const segX = i * 12;
                 const segY = Math.sin((Date.now() / 200) + snake.waveOffset + i * 0.5) * 3;
@@ -469,13 +590,13 @@
             }
 
             // Head
-            ctx.fillStyle = '#32CD32';
+            ctx.fillStyle = '#E53935';
             ctx.beginPath();
             ctx.ellipse(55, 10, 10, 8, 0.3, 0, Math.PI * 2);
             ctx.fill();
 
             // Eyes
-            ctx.fillStyle = 'yellow';
+            ctx.fillStyle = '#FFEB3B';
             ctx.beginPath();
             ctx.arc(58, 6, 3, 0, Math.PI * 2);
             ctx.fill();
@@ -485,7 +606,7 @@
             ctx.fill();
 
             // Tongue
-            ctx.strokeStyle = 'red';
+            ctx.strokeStyle = '#D81B60';
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.moveTo(64, 10);
@@ -494,13 +615,17 @@
             ctx.lineTo(70, 12);
             ctx.stroke();
 
-            // Pattern on body
-            ctx.fillStyle = '#006400';
+            // Pattern on body - darker red diamonds
+            ctx.fillStyle = '#8B0000';
             for (let i = 0; i < 4; i++) {
                 const segX = i * 12 + 6;
                 const segY = Math.sin((Date.now() / 200) + snake.waveOffset + i * 0.5) * 3;
                 ctx.beginPath();
-                ctx.arc(segX, segY + 12, 3, 0, Math.PI * 2);
+                ctx.moveTo(segX, segY + 8);
+                ctx.lineTo(segX + 4, segY + 12);
+                ctx.lineTo(segX, segY + 16);
+                ctx.lineTo(segX - 4, segY + 12);
+                ctx.closePath();
                 ctx.fill();
             }
 
@@ -549,29 +674,49 @@
             ctx.translate(banana.x + banana.width / 2, banana.y + banana.height / 2);
             ctx.rotate(banana.rotation + Math.sin(Date.now() / 300) * 0.1);
 
-            // Banana shape
-            ctx.fillStyle = '#FFE135';
+            // Single banana - curved crescent shape
+            ctx.fillStyle = '#FFD700';
             ctx.beginPath();
-            ctx.moveTo(-12, 8);
-            ctx.quadraticCurveTo(-15, 0, -10, -10);
-            ctx.quadraticCurveTo(0, -15, 10, -10);
-            ctx.quadraticCurveTo(15, 0, 12, 8);
-            ctx.quadraticCurveTo(0, 12, -12, 8);
+            // Outer curve
+            ctx.moveTo(-12, 5);
+            ctx.quadraticCurveTo(-8, -12, 8, -10);
+            ctx.quadraticCurveTo(14, -8, 15, -2);
+            // Inner curve
+            ctx.quadraticCurveTo(12, -6, 6, -6);
+            ctx.quadraticCurveTo(-4, -6, -8, 2);
+            ctx.closePath();
             ctx.fill();
 
-            // Banana tips
-            ctx.fillStyle = '#8B7355';
+            // Darker yellow for depth
+            ctx.fillStyle = '#E6BE00';
             ctx.beginPath();
-            ctx.arc(-11, -8, 3, 0, Math.PI * 2);
-            ctx.arc(11, -8, 3, 0, Math.PI * 2);
+            ctx.moveTo(-10, 3);
+            ctx.quadraticCurveTo(-6, -8, 6, -7);
+            ctx.quadraticCurveTo(10, -6, 12, -3);
+            ctx.quadraticCurveTo(8, -4, 4, -4);
+            ctx.quadraticCurveTo(-4, -4, -8, 1);
+            ctx.closePath();
             ctx.fill();
 
-            // Highlight
-            ctx.strokeStyle = '#FFF8DC';
+            // Stem end (top)
+            ctx.fillStyle = '#6B4423';
+            ctx.beginPath();
+            ctx.arc(14, -3, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Bottom tip
+            ctx.fillStyle = '#4A3015';
+            ctx.beginPath();
+            ctx.ellipse(-11, 4, 2, 3, 0.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Highlight shine
+            ctx.strokeStyle = 'rgba(255, 255, 240, 0.6)';
             ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
             ctx.beginPath();
-            ctx.moveTo(-5, -5);
-            ctx.quadraticCurveTo(0, -8, 5, -5);
+            ctx.moveTo(-4, -4);
+            ctx.quadraticCurveTo(2, -8, 8, -6);
             ctx.stroke();
 
             ctx.restore();
@@ -653,28 +798,56 @@
             drawCloud(700 - cloudOffset % 900, 40);
             drawCloud(1000 - cloudOffset % 900, 70);
 
-            // Background trees (far)
-            ctx.fillStyle = '#1B4D1B';
+            // Far background hill/ground for trees
+            ctx.fillStyle = '#2D5016';
+            ctx.beginPath();
+            ctx.moveTo(0, GROUND_Y - 40);
+            ctx.lineTo(CANVAS_WIDTH, GROUND_Y - 40);
+            ctx.lineTo(CANVAS_WIDTH, GROUND_Y);
+            ctx.lineTo(0, GROUND_Y);
+            ctx.closePath();
+            ctx.fill();
+
+            // Background trees (far) - on the far ground
             for (let i = 0; i < 10; i++) {
                 const x = (i * 120 - (bgOffset * 0.3) % 120) - 60;
-                drawTree(x, GROUND_Y - 100, 0.6, '#1B4D1B');
+                drawTree(x, GROUND_Y - 40, 0.6, '#1B4D1B');
             }
 
-            // Middle trees
-            ctx.fillStyle = '#228B22';
+            // Middle ground layer
+            ctx.fillStyle = '#3D6B1E';
+            ctx.beginPath();
+            ctx.moveTo(0, GROUND_Y - 20);
+            ctx.lineTo(CANVAS_WIDTH, GROUND_Y - 20);
+            ctx.lineTo(CANVAS_WIDTH, GROUND_Y);
+            ctx.lineTo(0, GROUND_Y);
+            ctx.closePath();
+            ctx.fill();
+
+            // Middle trees - on middle ground
             for (let i = 0; i < 8; i++) {
                 const x = (i * 150 - (bgOffset * 0.5) % 150) - 75;
-                drawTree(x, GROUND_Y - 80, 0.8, '#228B22');
+                drawTree(x, GROUND_Y - 20, 0.8, '#228B22');
             }
+
+            // Foreground grass layer
+            ctx.fillStyle = '#4A7C23';
+            ctx.beginPath();
+            ctx.moveTo(0, GROUND_Y - 5);
+            ctx.lineTo(CANVAS_WIDTH, GROUND_Y - 5);
+            ctx.lineTo(CANVAS_WIDTH, GROUND_Y);
+            ctx.lineTo(0, GROUND_Y);
+            ctx.closePath();
+            ctx.fill();
 
             // Foreground bushes
             ctx.fillStyle = '#32CD32';
             for (let i = 0; i < 12; i++) {
                 const x = (i * 100 - (bgOffset * 0.7) % 100) - 50;
-                drawBush(x, GROUND_Y - 20);
+                drawBush(x, GROUND_Y - 15);
             }
 
-            // Ground
+            // Main ground (path/dirt)
             const groundGradient = ctx.createLinearGradient(0, GROUND_Y, 0, CANVAS_HEIGHT);
             groundGradient.addColorStop(0, '#8B4513');
             groundGradient.addColorStop(0.3, '#654321');
@@ -815,6 +988,7 @@
             bananas = [];
             lastSnakeSpawn = 0;
             lastBananaSpawn = 0;
+            nextSnakeDelay = 1500;
             gameStartTime = performance.now();
             isNewRecord = false;
 
