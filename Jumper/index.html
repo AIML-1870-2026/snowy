@@ -27,7 +27,6 @@
             align-items: center;
             width: 800px;
             height: 500px;
-            background: linear-gradient(to bottom, #87CEEB, #4A7C23);
             border: 4px solid #4a2c0a;
             border-radius: 8px;
             box-shadow: 0 0 30px rgba(0,0,0,0.6);
@@ -36,27 +35,15 @@
             color: white;
             text-align: center;
         }
-        #menuScreen::before {
-            content: '';
+        #menuCanvas {
             position: absolute;
-            bottom: 0;
+            top: 0;
             left: 0;
-            right: 0;
-            height: 120px;
-            background: linear-gradient(to bottom, #228B22, #1B4D1B);
+            width: 100%;
+            height: 100%;
             z-index: 0;
         }
-        #menuScreen::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 60px;
-            background: linear-gradient(to bottom, #8B4513, #654321);
-            z-index: 1;
-        }
-        #menuScreen > * {
+        #menuScreen > *:not(#menuCanvas) {
             position: relative;
             z-index: 2;
         }
@@ -276,6 +263,7 @@
 <body>
     <!-- Menu Screen -->
     <div id="menuScreen">
+        <canvas id="menuCanvas" width="800" height="500"></canvas>
         <h1>🐵 MONKEY JUMPER 🐵</h1>
         <p>Help the monkey escape through the jungle!</p>
         <p class="instructions">Press SPACE to jump over snakes</p>
@@ -1764,10 +1752,167 @@
             });
         });
 
+        // ============================================
+        // Menu Backdrop Drawing
+        // ============================================
+        function drawMenuBackdrop() {
+            const menuCanvas = document.getElementById('menuCanvas');
+            const mctx = menuCanvas.getContext('2d');
+            const MW = menuCanvas.width;
+            const MH = menuCanvas.height;
+            const MGROUND = MH - 80;
+
+            // Sky gradient
+            const skyGradient = mctx.createLinearGradient(0, 0, 0, MGROUND);
+            skyGradient.addColorStop(0, '#87CEEB');
+            skyGradient.addColorStop(1, '#E0F6FF');
+            mctx.fillStyle = skyGradient;
+            mctx.fillRect(0, 0, MW, MGROUND);
+
+            // Sun with glow
+            const sunX = 650, sunY = 80;
+            const glowGradient = mctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 80);
+            glowGradient.addColorStop(0, 'rgba(255, 200, 100, 0.4)');
+            glowGradient.addColorStop(0.5, 'rgba(255, 150, 50, 0.2)');
+            glowGradient.addColorStop(1, 'rgba(255, 100, 0, 0)');
+            mctx.fillStyle = glowGradient;
+            mctx.beginPath();
+            mctx.arc(sunX, sunY, 80, 0, Math.PI * 2);
+            mctx.fill();
+
+            // Sun body
+            const sunGradient = mctx.createRadialGradient(sunX - 10, sunY - 10, 0, sunX, sunY, 35);
+            sunGradient.addColorStop(0, '#FFFDE7');
+            sunGradient.addColorStop(0.5, '#FFF59D');
+            sunGradient.addColorStop(1, '#FFD700');
+            mctx.fillStyle = sunGradient;
+            mctx.beginPath();
+            mctx.arc(sunX, sunY, 35, 0, Math.PI * 2);
+            mctx.fill();
+
+            // Clouds
+            mctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            function drawMenuCloud(x, y) {
+                mctx.beginPath();
+                mctx.arc(x, y, 25, 0, Math.PI * 2);
+                mctx.arc(x + 25, y - 10, 30, 0, Math.PI * 2);
+                mctx.arc(x + 50, y, 25, 0, Math.PI * 2);
+                mctx.arc(x + 25, y + 5, 20, 0, Math.PI * 2);
+                mctx.fill();
+            }
+            drawMenuCloud(80, 60);
+            drawMenuCloud(350, 100);
+            drawMenuCloud(550, 50);
+
+            // Far hills
+            mctx.fillStyle = '#1B4D1B';
+            mctx.beginPath();
+            mctx.moveTo(0, MGROUND - 60);
+            mctx.lineTo(MW, MGROUND - 60);
+            mctx.lineTo(MW, MGROUND);
+            mctx.lineTo(0, MGROUND);
+            mctx.closePath();
+            mctx.fill();
+
+            // Draw trees function
+            function drawMenuTree(x, y, scale, color) {
+                mctx.save();
+                mctx.translate(x, y);
+                mctx.scale(scale, scale);
+                // Trunk
+                mctx.fillStyle = '#4A3728';
+                mctx.fillRect(-8, 0, 16, 60);
+                // Foliage
+                mctx.fillStyle = color;
+                mctx.beginPath();
+                mctx.moveTo(0, -80);
+                mctx.lineTo(-40, 0);
+                mctx.lineTo(40, 0);
+                mctx.closePath();
+                mctx.fill();
+                mctx.beginPath();
+                mctx.moveTo(0, -50);
+                mctx.lineTo(-35, 20);
+                mctx.lineTo(35, 20);
+                mctx.closePath();
+                mctx.fill();
+                mctx.restore();
+            }
+
+            // Far trees
+            for (let i = 0; i < 10; i++) {
+                drawMenuTree(i * 100 + 30, MGROUND - 60, 0.6, '#1B4D1B');
+            }
+
+            // Middle ground
+            mctx.fillStyle = '#228B22';
+            mctx.beginPath();
+            mctx.moveTo(0, MGROUND - 30);
+            mctx.lineTo(MW, MGROUND - 30);
+            mctx.lineTo(MW, MGROUND);
+            mctx.lineTo(0, MGROUND);
+            mctx.closePath();
+            mctx.fill();
+
+            // Middle trees
+            for (let i = 0; i < 8; i++) {
+                drawMenuTree(i * 120 + 50, MGROUND - 30, 0.8, '#228B22');
+            }
+
+            // Foreground bushes
+            mctx.fillStyle = '#2E7D32';
+            for (let i = 0; i < 12; i++) {
+                const bx = i * 80 + 20;
+                mctx.beginPath();
+                mctx.arc(bx, MGROUND - 10, 20, 0, Math.PI * 2);
+                mctx.arc(bx + 15, MGROUND - 15, 18, 0, Math.PI * 2);
+                mctx.arc(bx + 30, MGROUND - 10, 20, 0, Math.PI * 2);
+                mctx.fill();
+            }
+
+            // Ground
+            const groundGradient = mctx.createLinearGradient(0, MGROUND, 0, MH);
+            groundGradient.addColorStop(0, '#8B4513');
+            groundGradient.addColorStop(0.3, '#654321');
+            groundGradient.addColorStop(1, '#3D2314');
+            mctx.fillStyle = groundGradient;
+            mctx.fillRect(0, MGROUND, MW, MH - MGROUND);
+
+            // Grass blades
+            mctx.strokeStyle = '#4A7C23';
+            mctx.lineWidth = 2;
+            for (let i = 0; i < 80; i++) {
+                const gx = i * 12;
+                mctx.beginPath();
+                mctx.moveTo(gx, MGROUND);
+                mctx.lineTo(gx + 3, MGROUND - 10);
+                mctx.stroke();
+            }
+
+            // Vines hanging from top
+            mctx.strokeStyle = '#2E7D32';
+            mctx.lineWidth = 4;
+            for (let i = 0; i < 6; i++) {
+                const vx = i * 150 + 50;
+                mctx.beginPath();
+                mctx.moveTo(vx, 0);
+                mctx.quadraticCurveTo(vx + 20, 60, vx - 10, 100 + Math.random() * 40);
+                mctx.stroke();
+                // Leaves on vines
+                mctx.fillStyle = '#228B22';
+                mctx.beginPath();
+                mctx.ellipse(vx - 5, 80, 8, 4, 0.5, 0, Math.PI * 2);
+                mctx.fill();
+            }
+        }
+
         // Initialize
         highScore = HighScoreManager.get();
         document.getElementById('menuHighScore').textContent = `High Score: ${highScore}`;
         document.getElementById('highScoreDisplay').textContent = `High Score: ${highScore}`;
+
+        // Draw menu backdrop
+        drawMenuBackdrop();
 
         // Draw initial background
         drawBackground();
