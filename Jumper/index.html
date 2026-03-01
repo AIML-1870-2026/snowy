@@ -266,6 +266,25 @@
             background: linear-gradient(to bottom, #f44336, #D32F2F);
             color: white;
         }
+        #frenzyDisplay {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 36px;
+            font-weight: bold;
+            color: #FF4500;
+            text-shadow: 0 0 10px #FFD700, 0 0 20px #FF6600, 2px 2px 4px rgba(0,0,0,0.5);
+            z-index: 15;
+            animation: frenzyPulse 0.3s ease-in-out infinite alternate;
+        }
+        #frenzyDisplay.hidden {
+            display: none;
+        }
+        @keyframes frenzyPulse {
+            from { transform: translateX(-50%) scale(1); }
+            to { transform: translateX(-50%) scale(1.1); }
+        }
     </style>
 </head>
 <body>
@@ -294,6 +313,7 @@
                 <span id="scoreDisplay">Score: 0</span>
                 <span id="highScoreDisplay">High Score: 0</span>
             </div>
+            <div id="frenzyDisplay" class="hidden">🔥 FRENZY TIME! 🔥</div>
             <div id="gameOverOverlay" class="hidden"></div>
             <div id="pauseOverlay" class="hidden">
                 <h2>⏸ PAUSED</h2>
@@ -486,6 +506,14 @@
         let lastTime = 0;
         let pauseStartTime = 0;
         let totalPausedTime = 0;
+
+        // Frenzy mode
+        let isFrenzy = false;
+        let frenzyStartTime = 0;
+        let lastFrenzyTrigger = 0;
+        const FRENZY_INTERVAL = 30000; // 30 seconds
+        const FRENZY_DURATION = 10000; // 10 seconds
+        const FRENZY_SPEED_BOOST = 2;
 
         // ============================================
         // Difficulty Settings
@@ -819,7 +847,7 @@
             });
         }
 
-        function updateSnakes(deltaTime, currentTime) {
+        function updateSnakes(deltaTime, currentTime, speed) {
             // Spawn new snakes with varied timing
             if (currentTime - lastSnakeSpawn > nextSnakeDelay) {
                 spawnSnake();
@@ -829,7 +857,7 @@
 
             // Update positions
             snakes.forEach(snake => {
-                snake.x -= DifficultyManager.currentSpeed;
+                snake.x -= speed;
             });
 
             // Remove off-screen snakes
@@ -912,7 +940,7 @@
             });
         }
 
-        function updateBananas(deltaTime, currentTime) {
+        function updateBananas(deltaTime, currentTime, speed) {
             // Spawn new bananas
             if (currentTime - lastBananaSpawn > BANANA_SPAWN_RATE) {
                 if (Math.random() > 0.3) { // 70% chance to spawn
@@ -923,7 +951,7 @@
 
             // Update positions
             bananas.forEach(banana => {
-                banana.x -= DifficultyManager.currentSpeed;
+                banana.x -= speed;
             });
 
             // Remove off-screen bananas
@@ -1011,7 +1039,7 @@
             });
         }
 
-        function updateRivers(deltaTime, currentTime) {
+        function updateRivers(deltaTime, currentTime, speed) {
             const settings = DifficultySettings[selectedDifficulty];
 
             // Only spawn rivers if enabled for this difficulty
@@ -1024,12 +1052,12 @@
 
             // Update river positions
             rivers.forEach(river => {
-                river.x -= DifficultyManager.currentSpeed;
+                river.x -= speed;
             });
 
             // Update platform positions
             platforms.forEach(platform => {
-                platform.x -= DifficultyManager.currentSpeed;
+                platform.x -= speed;
             });
 
             // Remove off-screen rivers and platforms
@@ -1579,18 +1607,38 @@
                 // Update difficulty
                 DifficultyManager.update(elapsedTime);
 
+                // Frenzy mode logic
+                if (!isFrenzy && elapsedTime - lastFrenzyTrigger >= FRENZY_INTERVAL && elapsedTime > 0) {
+                    // Start frenzy
+                    isFrenzy = true;
+                    frenzyStartTime = elapsedTime;
+                    lastFrenzyTrigger = elapsedTime;
+                    document.getElementById('frenzyDisplay').classList.remove('hidden');
+                }
+
+                if (isFrenzy && elapsedTime - frenzyStartTime >= FRENZY_DURATION) {
+                    // End frenzy
+                    isFrenzy = false;
+                    document.getElementById('frenzyDisplay').classList.add('hidden');
+                }
+
+                // Calculate effective speed (with frenzy boost if active)
+                const effectiveSpeed = isFrenzy
+                    ? DifficultyManager.currentSpeed + FRENZY_SPEED_BOOST
+                    : DifficultyManager.currentSpeed;
+
                 // Update background offset
-                bgOffset += DifficultyManager.currentSpeed;
-                cloudOffset += DifficultyManager.currentSpeed * 0.2;
+                bgOffset += effectiveSpeed;
+                cloudOffset += effectiveSpeed * 0.2;
 
                 // Update time of day (full cycle every 90 seconds)
                 timeOfDay = (elapsedTime / 30000) % 3;
 
                 // Update game objects
                 monkey.update(deltaTime);
-                updateSnakes(deltaTime, elapsedTime);
-                updateBananas(deltaTime, elapsedTime);
-                updateRivers(deltaTime, elapsedTime);
+                updateSnakes(deltaTime, elapsedTime, effectiveSpeed);
+                updateBananas(deltaTime, elapsedTime, effectiveSpeed);
+                updateRivers(deltaTime, elapsedTime, effectiveSpeed);
                 updateScore(deltaTime);
 
                 // Check collisions
@@ -1656,6 +1704,12 @@
             pauseStartTime = 0;
             gameStartTime = performance.now();
             isNewRecord = false;
+
+            // Reset frenzy state
+            isFrenzy = false;
+            frenzyStartTime = 0;
+            lastFrenzyTrigger = 0;
+            document.getElementById('frenzyDisplay').classList.add('hidden');
 
             monkey.reset();
             DifficultyManager.reset();
