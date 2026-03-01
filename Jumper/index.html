@@ -10,27 +10,25 @@
             padding: 0;
             box-sizing: border-box;
         }
-        body {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background: linear-gradient(to bottom, #1a3a1a, #0d1f0d);
-            font-family: 'Arial', sans-serif;
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
             overflow: hidden;
+            background: #0d1f0d;
+            font-family: 'Arial', sans-serif;
         }
         #menuScreen {
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            width: 800px;
-            height: 500px;
-            border: 4px solid #4a2c0a;
-            border-radius: 8px;
-            box-shadow: 0 0 30px rgba(0,0,0,0.6);
-            position: relative;
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
             overflow: hidden;
             color: white;
             text-align: center;
@@ -53,58 +51,67 @@
         }
         #gameWrapper {
             display: none;
-            flex-direction: column;
-            align-items: center;
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
         }
         #gameWrapper.active {
-            display: flex;
+            display: block;
         }
         #gameContainer {
             position: relative;
-            border: 4px solid #4a2c0a;
-            border-radius: 8px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            width: 100%;
+            height: 100%;
         }
         #gameControls {
-            margin-top: 10px;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
         }
         #gameCanvas {
             display: block;
+            width: 100%;
+            height: 100%;
             background: #87CEEB;
         }
         #ui {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            right: 10px;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            right: 20px;
             display: flex;
             justify-content: space-between;
             color: white;
-            font-size: 18px;
+            font-size: 24px;
             font-weight: bold;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
             pointer-events: none;
+            z-index: 10;
         }
         #menuScreen h1 {
-            font-size: 48px;
+            font-size: 64px;
             color: #FFD700;
-            text-shadow: 3px 3px 6px rgba(0,0,0,0.7);
-            margin-bottom: 15px;
+            text-shadow: 4px 4px 8px rgba(0,0,0,0.7);
+            margin-bottom: 20px;
         }
         #menuScreen p {
-            font-size: 20px;
-            margin: 8px 0;
+            font-size: 24px;
+            margin: 10px 0;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
         }
         #menuScreen .instructions {
-            font-size: 16px;
+            font-size: 20px;
             color: #eee;
-            margin-top: 10px;
+            margin-top: 15px;
         }
         #menuScreen .high-score {
-            font-size: 24px;
+            font-size: 28px;
             color: #FFD700;
-            margin: 10px 0;
+            margin: 15px 0;
         }
         #gameOverOverlay {
             position: absolute;
@@ -150,14 +157,14 @@
             to { transform: scale(1.1); }
         }
         #startBtn, #restartBtn, #menuBtn {
-            margin-top: 20px;
-            padding: 15px 40px;
-            font-size: 20px;
+            margin-top: 25px;
+            padding: 18px 50px;
+            font-size: 24px;
             font-weight: bold;
             background: linear-gradient(to bottom, #4CAF50, #2E7D32);
             color: white;
             border: none;
-            border-radius: 10px;
+            border-radius: 12px;
             cursor: pointer;
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             transition: transform 0.1s, box-shadow 0.1s;
@@ -189,15 +196,15 @@
         }
         .difficulty-selector {
             display: flex;
-            gap: 10px;
-            margin: 15px 0;
+            gap: 15px;
+            margin: 20px 0;
         }
         .difficulty-btn {
-            padding: 12px 24px;
-            font-size: 16px;
+            padding: 15px 30px;
+            font-size: 20px;
             font-weight: bold;
             border: 3px solid transparent;
-            border-radius: 8px;
+            border-radius: 10px;
             cursor: pointer;
             transition: all 0.2s;
         }
@@ -306,9 +313,31 @@
         // ============================================
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const CANVAS_WIDTH = canvas.width;
-        const CANVAS_HEIGHT = canvas.height;
-        const GROUND_Y = CANVAS_HEIGHT - 60;
+
+        // Dynamic canvas sizing
+        let CANVAS_WIDTH = window.innerWidth;
+        let CANVAS_HEIGHT = window.innerHeight;
+        let GROUND_Y = CANVAS_HEIGHT - 80;
+
+        function resizeCanvas() {
+            CANVAS_WIDTH = window.innerWidth;
+            CANVAS_HEIGHT = window.innerHeight;
+            GROUND_Y = CANVAS_HEIGHT - 80;
+            canvas.width = CANVAS_WIDTH;
+            canvas.height = CANVAS_HEIGHT;
+
+            // Resize menu canvas too
+            const menuCanvas = document.getElementById('menuCanvas');
+            menuCanvas.width = CANVAS_WIDTH;
+            menuCanvas.height = CANVAS_HEIGHT;
+            drawMenuBackdrop();
+        }
+
+        // Initial sizing
+        canvas.width = CANVAS_WIDTH;
+        canvas.height = CANVAS_HEIGHT;
+
+        window.addEventListener('resize', resizeCanvas);
 
         // ============================================
         // PATTERN CHUNK 11: Audio Manager
@@ -1758,6 +1787,7 @@
         // ============================================
         function drawMenuBackdrop() {
             const menuCanvas = document.getElementById('menuCanvas');
+            if (!menuCanvas) return;
             const mctx = menuCanvas.getContext('2d');
             const MW = menuCanvas.width;
             const MH = menuCanvas.height;
@@ -1770,8 +1800,8 @@
             mctx.fillStyle = skyGradient;
             mctx.fillRect(0, 0, MW, MGROUND);
 
-            // Sun with glow
-            const sunX = 650, sunY = 80;
+            // Sun with glow - positioned relative to canvas size
+            const sunX = MW - 150, sunY = 100;
             const glowGradient = mctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 80);
             glowGradient.addColorStop(0, 'rgba(255, 200, 100, 0.4)');
             glowGradient.addColorStop(0.5, 'rgba(255, 150, 50, 0.2)');
@@ -1791,7 +1821,7 @@
             mctx.arc(sunX, sunY, 35, 0, Math.PI * 2);
             mctx.fill();
 
-            // Clouds
+            // Clouds - spread across screen width
             mctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
             function drawMenuCloud(x, y) {
                 mctx.beginPath();
@@ -1801,9 +1831,10 @@
                 mctx.arc(x + 25, y + 5, 20, 0, Math.PI * 2);
                 mctx.fill();
             }
-            drawMenuCloud(80, 60);
-            drawMenuCloud(350, 100);
-            drawMenuCloud(550, 50);
+            const cloudSpacing = MW / 5;
+            for (let i = 0; i < 5; i++) {
+                drawMenuCloud(cloudSpacing * i + 50, 60 + (i % 2) * 40);
+            }
 
             // Far hills
             mctx.fillStyle = '#1B4D1B';
@@ -1840,8 +1871,9 @@
                 mctx.restore();
             }
 
-            // Far trees
-            for (let i = 0; i < 10; i++) {
+            // Far trees - spread across width
+            const farTreeCount = Math.ceil(MW / 100);
+            for (let i = 0; i < farTreeCount; i++) {
                 drawMenuTree(i * 100 + 30, MGROUND - 60, 0.6, '#1B4D1B');
             }
 
@@ -1855,14 +1887,16 @@
             mctx.closePath();
             mctx.fill();
 
-            // Middle trees
-            for (let i = 0; i < 8; i++) {
+            // Middle trees - spread across width
+            const midTreeCount = Math.ceil(MW / 120);
+            for (let i = 0; i < midTreeCount; i++) {
                 drawMenuTree(i * 120 + 50, MGROUND - 30, 0.8, '#228B22');
             }
 
-            // Foreground bushes
+            // Foreground bushes - spread across width
             mctx.fillStyle = '#2E7D32';
-            for (let i = 0; i < 12; i++) {
+            const bushCount = Math.ceil(MW / 80);
+            for (let i = 0; i < bushCount; i++) {
                 const bx = i * 80 + 20;
                 mctx.beginPath();
                 mctx.arc(bx, MGROUND - 10, 20, 0, Math.PI * 2);
@@ -1879,10 +1913,11 @@
             mctx.fillStyle = groundGradient;
             mctx.fillRect(0, MGROUND, MW, MH - MGROUND);
 
-            // Grass blades
+            // Grass blades - spread across width
             mctx.strokeStyle = '#4A7C23';
             mctx.lineWidth = 2;
-            for (let i = 0; i < 80; i++) {
+            const grassCount = Math.ceil(MW / 12);
+            for (let i = 0; i < grassCount; i++) {
                 const gx = i * 12;
                 mctx.beginPath();
                 mctx.moveTo(gx, MGROUND);
@@ -1890,14 +1925,15 @@
                 mctx.stroke();
             }
 
-            // Vines hanging from top
+            // Vines hanging from top - spread across width
             mctx.strokeStyle = '#2E7D32';
             mctx.lineWidth = 4;
-            for (let i = 0; i < 6; i++) {
+            const vineCount = Math.ceil(MW / 150);
+            for (let i = 0; i < vineCount; i++) {
                 const vx = i * 150 + 50;
                 mctx.beginPath();
                 mctx.moveTo(vx, 0);
-                mctx.quadraticCurveTo(vx + 20, 60, vx - 10, 100 + Math.random() * 40);
+                mctx.quadraticCurveTo(vx + 20, 60, vx - 10, 120);
                 mctx.stroke();
                 // Leaves on vines
                 mctx.fillStyle = '#228B22';
@@ -1911,6 +1947,11 @@
         highScore = HighScoreManager.get();
         document.getElementById('menuHighScore').textContent = `High Score: ${highScore}`;
         document.getElementById('highScoreDisplay').textContent = `High Score: ${highScore}`;
+
+        // Initialize menu canvas to fullscreen
+        const menuCanvas = document.getElementById('menuCanvas');
+        menuCanvas.width = window.innerWidth;
+        menuCanvas.height = window.innerHeight;
 
         // Draw menu backdrop
         drawMenuBackdrop();
