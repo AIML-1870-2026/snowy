@@ -1042,8 +1042,8 @@
         function updateRivers(deltaTime, currentTime, speed) {
             const settings = DifficultySettings[selectedDifficulty];
 
-            // Only spawn rivers if enabled for this difficulty
-            if (settings.enableRivers && score >= settings.riverSpawnScore) {
+            // Only spawn rivers during frenzy time (and if enabled for this difficulty)
+            if (settings.enableRivers && isFrenzy) {
                 if (currentTime - lastRiverSpawn > settings.riverInterval) {
                     spawnRiver();
                     lastRiverSpawn = currentTime;
