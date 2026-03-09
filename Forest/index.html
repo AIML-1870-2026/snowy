@@ -1764,10 +1764,9 @@ const game = (()=>{
     statHealth = Math.max(0, statHealth - dt * 0.2778);
     statHunger = Math.max(0, statHunger - dt * 0.5556);
     statTired  = Math.max(0, statTired  - dt * 0.1389);
-    // stink: resets to 100 at sleep (6am), drains to 0 by 2pm (840 game-min)
-    // window = 840-360 = 480 game-min; real-rate = 100/(480/2) = 0.4167/s
-    if(gameTime < 14*60) statStink = Math.max(0, statStink - dt * 0.4167);
-    else statStink = 0;
+    // stink: drains throughout the day, can be replenished by bathing
+    // Drain rate: reaches 0 from 100 over ~8 hours of game time
+    statStink = Math.max(0, statStink - dt * 0.3);
     updateStats();
     // Chop progress
     if(chopState){
@@ -2146,7 +2145,7 @@ const game = (()=>{
           setDlg('🌲','FOREST','new day',`Good morning! It's day ${gameDay}. New items have grown overnight — happy foraging! 🌱`);
         },1500);
       },2200);
-    }, 800); // Show player in bed for 800ms before fading
+    }, 1500); // Show player in bed for 1.5s before fading
   }
 
   function regrow(){
@@ -3247,38 +3246,44 @@ const game = (()=>{
       const charScreenY = iOY + hutPlayer.y * iScale;
 
       if(isSleeping){
-        // Draw player in bed (only head visible on pillow)
-        // Bed position for drawing: pillow area is around row 3.5-4.0
+        // Draw player lying in bed - position on the pillow area
         const bedHeadX = iOX + 1.3 * iScale;
-        const bedHeadY = iOY + 3.8 * iScale;
+        const bedHeadY = iOY + 4.0 * iScale;
 
-        // Draw just the head peeking out from blanket
+        // Draw the character lying down (rotated 90 degrees)
         ctx.save();
-        ctx.beginPath();
-        ctx.rect(bedHeadX - iScale * 0.6, bedHeadY - iScale * 0.4, iScale * 1.2, iScale * 0.6);
-        ctx.clip();
-        if(selectedChar==='fox') Sprites.fox(ctx, bedHeadX, bedHeadY + iScale * 0.2, 'up', false, t);
-        else if(selectedChar==='raccoon') Sprites.raccoon(ctx, bedHeadX, bedHeadY + iScale * 0.2, 'up', false, t);
-        else if(selectedChar==='chipmunk') Sprites.chipmunk(ctx, bedHeadX, bedHeadY + iScale * 0.2, 'up', false, t);
-        else Sprites.fox(ctx, bedHeadX, bedHeadY + iScale * 0.2, 'up', false, t);
+        ctx.translate(bedHeadX, bedHeadY);
+        ctx.rotate(-Math.PI / 2); // Rotate to lie horizontally
+
+        // Draw the character sprite at rotated position
+        if(selectedChar==='fox') Sprites.fox(ctx, 0, 0, 'down', false, t);
+        else if(selectedChar==='raccoon') Sprites.raccoon(ctx, 0, 0, 'down', false, t);
+        else if(selectedChar==='chipmunk') Sprites.chipmunk(ctx, 0, 0, 'down', false, t);
+        else Sprites.fox(ctx, 0, 0, 'down', false, t);
         ctx.restore();
+
+        // Draw blanket covering lower body
+        ctx.fillStyle = '#7a5a8a';
+        ctx.fillRect(bedHeadX - iScale * 0.1, bedHeadY - iScale * 0.2, iScale * 0.8, iScale * 0.5);
+        ctx.fillStyle = '#9a7aaa';
+        ctx.fillRect(bedHeadX - iScale * 0.05, bedHeadY - iScale * 0.15, iScale * 0.7, iScale * 0.1);
 
         // Draw Zzz floating above
         const zzFloat = Math.sin(t * 2) * iScale * 0.1;
-        ctx.font = `${iScale * 0.3}px "Press Start 2P", monospace`;
-        ctx.fillStyle = `rgba(200,200,255,${0.6 + Math.sin(t * 3) * 0.3})`;
+        ctx.font = `${iScale * 0.35}px "Press Start 2P", monospace`;
+        ctx.fillStyle = `rgba(200,200,255,${0.7 + Math.sin(t * 3) * 0.3})`;
         ctx.textAlign = 'center';
-        ctx.fillText('Z', bedHeadX + iScale * 0.4, bedHeadY - iScale * 0.3 + zzFloat);
-        ctx.font = `${iScale * 0.25}px "Press Start 2P", monospace`;
-        ctx.fillText('z', bedHeadX + iScale * 0.6, bedHeadY - iScale * 0.5 + zzFloat * 0.8);
-        ctx.font = `${iScale * 0.2}px "Press Start 2P", monospace`;
-        ctx.fillText('z', bedHeadX + iScale * 0.75, bedHeadY - iScale * 0.65 + zzFloat * 0.6);
+        ctx.fillText('Z', bedHeadX + iScale * 0.5, bedHeadY - iScale * 0.5 + zzFloat);
+        ctx.font = `${iScale * 0.28}px "Press Start 2P", monospace`;
+        ctx.fillText('z', bedHeadX + iScale * 0.75, bedHeadY - iScale * 0.7 + zzFloat * 0.8);
+        ctx.font = `${iScale * 0.22}px "Press Start 2P", monospace`;
+        ctx.fillText('z', bedHeadX + iScale * 0.95, bedHeadY - iScale * 0.85 + zzFloat * 0.6);
 
         // Name tag above bed
-        ctx.fillStyle='rgba(8,18,8,.82)'; ctx.fillRect(bedHeadX-15, bedHeadY - iScale * 0.9, 30, 11);
+        ctx.fillStyle='rgba(8,18,8,.82)'; ctx.fillRect(bedHeadX-15, bedHeadY - iScale * 1.1, 30, 11);
         ctx.fillStyle='#ffd700'; ctx.font='7px "Press Start 2P",monospace';
         ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillText(selectedChar ? CHARACTERS[selectedChar].name.slice(0,3) : 'YOU', bedHeadX, bedHeadY - iScale * 0.84);
+        ctx.fillText(selectedChar ? CHARACTERS[selectedChar].name.slice(0,3) : 'YOU', bedHeadX, bedHeadY - iScale * 1.04);
       } else if(isBathing){
         // Draw player partially submerged in tub (only head visible above water)
         const headY = charScreenY - iScale * 0.3;
