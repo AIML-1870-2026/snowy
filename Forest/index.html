@@ -3266,6 +3266,44 @@ const game = (()=>{
         else if(selectedChar==='raccoon') Sprites.raccoon(ctx, charScreenX, charScreenY, hutPlayer.facing, hutPlayer.moving, t);
         else if(selectedChar==='chipmunk') Sprites.chipmunk(ctx, charScreenX, charScreenY, hutPlayer.facing, hutPlayer.moving, t);
         else Sprites.fox(ctx, charScreenX, charScreenY, hutPlayer.facing, hutPlayer.moving, t);
+
+        // Stench cloud when stink meter is below 70 (inside hut)
+        if(statStink < 70){
+          const stenchIntensity = 1 - (statStink / 70);
+          const numClouds = Math.floor(3 + stenchIntensity * 5);
+          const cloudAlpha = 0.15 + stenchIntensity * 0.35;
+          const cloudSize = iScale * (0.15 + stenchIntensity * 0.2);
+          const cloudColor = `rgba(120, 140, 60, ${cloudAlpha})`;
+          const waveT = t * 2;
+          for(let i = 0; i < numClouds; i++){
+            const angle = (i / numClouds) * Math.PI * 2 + waveT * 0.5;
+            const radius = iScale * (0.3 + stenchIntensity * 0.25) + Math.sin(waveT + i) * iScale * 0.08;
+            const cx = charScreenX + Math.cos(angle) * radius;
+            const cy = charScreenY - iScale * 0.15 + Math.sin(angle) * radius * 0.5 + Math.sin(waveT * 1.5 + i * 0.7) * iScale * 0.12;
+            const wobble = 1 + Math.sin(waveT * 2 + i) * 0.2;
+            ctx.beginPath();
+            ctx.arc(cx, cy, cloudSize * wobble, 0, Math.PI * 2);
+            ctx.fillStyle = cloudColor;
+            ctx.fill();
+          }
+          // Wavy stink lines
+          const numLines = Math.floor(2 + stenchIntensity * 3);
+          ctx.strokeStyle = `rgba(100, 120, 50, ${cloudAlpha * 0.8})`;
+          ctx.lineWidth = 1 + stenchIntensity * 0.5;
+          for(let i = 0; i < numLines; i++){
+            const lx = charScreenX - iScale * 0.25 + (i / (numLines - 1)) * iScale * 0.5;
+            const ly = charScreenY - iScale * 0.4;
+            ctx.beginPath();
+            ctx.moveTo(lx, ly);
+            for(let j = 0; j < 4; j++){
+              const yOff = -j * iScale * 0.12;
+              const xOff = Math.sin(waveT * 3 + i + j * 0.5) * iScale * 0.08;
+              ctx.lineTo(lx + xOff, ly + yOff);
+            }
+            ctx.stroke();
+          }
+        }
+
         // Name tag
         ctx.fillStyle='rgba(8,18,8,.82)'; ctx.fillRect(charScreenX-15, charScreenY-iScale*1.1, 30, 11);
         ctx.fillStyle='#ffd700'; ctx.font='7px "Press Start 2P",monospace';
@@ -3294,6 +3332,44 @@ const game = (()=>{
     // Player
     {
       const {px, py} = Sprites.drawPlayer(ctx, player, camera, selectedChar, t);
+
+      // Stench cloud when stink meter is below 70
+      if(statStink < 70){
+        const stenchIntensity = 1 - (statStink / 70); // 0 at 70, 1 at 0
+        const numClouds = Math.floor(3 + stenchIntensity * 5); // 3-8 clouds
+        const cloudAlpha = 0.15 + stenchIntensity * 0.35; // 0.15-0.5 alpha
+        const cloudSize = TILE * (0.2 + stenchIntensity * 0.25); // grows with stench
+        const cloudColor = `rgba(120, 140, 60, ${cloudAlpha})`;
+        const waveT = t * 2;
+        for(let i = 0; i < numClouds; i++){
+          const angle = (i / numClouds) * Math.PI * 2 + waveT * 0.5;
+          const radius = TILE * (0.4 + stenchIntensity * 0.3) + Math.sin(waveT + i) * TILE * 0.1;
+          const cx = px + Math.cos(angle) * radius;
+          const cy = py - TILE * 0.2 + Math.sin(angle) * radius * 0.5 + Math.sin(waveT * 1.5 + i * 0.7) * TILE * 0.15;
+          const wobble = 1 + Math.sin(waveT * 2 + i) * 0.2;
+          ctx.beginPath();
+          ctx.arc(cx, cy, cloudSize * wobble, 0, Math.PI * 2);
+          ctx.fillStyle = cloudColor;
+          ctx.fill();
+        }
+        // Wavy stink lines rising up
+        const numLines = Math.floor(2 + stenchIntensity * 3);
+        ctx.strokeStyle = `rgba(100, 120, 50, ${cloudAlpha * 0.8})`;
+        ctx.lineWidth = 1.5 + stenchIntensity;
+        for(let i = 0; i < numLines; i++){
+          const lx = px - TILE * 0.3 + (i / (numLines - 1)) * TILE * 0.6;
+          const ly = py - TILE * 0.5;
+          ctx.beginPath();
+          ctx.moveTo(lx, ly);
+          for(let j = 0; j < 4; j++){
+            const yOff = -j * TILE * 0.15;
+            const xOff = Math.sin(waveT * 3 + i + j * 0.5) * TILE * 0.1;
+            ctx.lineTo(lx + xOff, ly + yOff);
+          }
+          ctx.stroke();
+        }
+      }
+
       ctx.textAlign='center'; ctx.textBaseline='middle';
       ctx.fillStyle='rgba(8,18,8,.82)';
       ctx.fillRect(px-15, py-TILE*1.1, 30, 11);
