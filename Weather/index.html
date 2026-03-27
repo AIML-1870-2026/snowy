@@ -308,22 +308,22 @@
         }
 
         #search-btn {
-            background: #ff6b6b;
+            background: #1a2744;
         }
 
         #search-btn:hover {
-            background: #ee5a5a;
+            background: #243456;
         }
 
         #location-btn {
-            background: #4ecdc4;
+            background: #1a2744;
             display: flex;
             align-items: center;
             gap: 6px;
         }
 
         #location-btn:hover {
-            background: #3dbdb5;
+            background: #243456;
         }
 
         #location-btn:disabled {
@@ -451,6 +451,7 @@
             padding: 15px;
             border-radius: 10px;
             text-align: center;
+            position: relative;
         }
 
         .detail-card .label {
@@ -462,6 +463,117 @@
         .detail-card .value {
             font-size: 1.4rem;
             font-weight: 600;
+        }
+
+        .info-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .info-btn:hover {
+            background: rgba(255, 255, 255, 0.35);
+        }
+
+        .info-tooltip {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(20, 30, 50, 0.97);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            max-width: 350px;
+            width: 90%;
+            z-index: 1000;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            display: none;
+        }
+
+        .info-tooltip.active {
+            display: block;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .info-tooltip h4 {
+            font-size: 1.2rem;
+            margin-bottom: 12px;
+            color: #fff;
+        }
+
+        .info-tooltip p {
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 10px;
+        }
+
+        .info-tooltip .current-status {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .info-tooltip .current-status strong {
+            color: #4ecdc4;
+        }
+
+        .info-tooltip .close-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .info-tooltip .close-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .tooltip-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            display: none;
+        }
+
+        .tooltip-overlay.active {
+            display: block;
         }
 
         .forecast-section {
@@ -614,6 +726,15 @@
     <!-- Snow effect -->
     <div class="snow" id="snow"></div>
 
+    <!-- Info tooltip overlay -->
+    <div class="tooltip-overlay" id="tooltip-overlay"></div>
+    <div class="info-tooltip" id="info-tooltip">
+        <button class="close-btn" aria-label="Close">&times;</button>
+        <h4 id="tooltip-title"></h4>
+        <p id="tooltip-description"></p>
+        <div class="current-status" id="tooltip-status"></div>
+    </div>
+
     <div class="container">
         <header>
             <h1>Real-Time Weather</h1>
@@ -657,22 +778,27 @@
                 </div>
                 <div class="weather-details">
                     <div class="detail-card">
+                        <button class="info-btn" data-metric="feels-like" aria-label="More info about Feels Like">?</button>
                         <div class="label">Feels Like</div>
                         <div class="value" id="feels-like"></div>
                     </div>
                     <div class="detail-card">
+                        <button class="info-btn" data-metric="humidity" aria-label="More info about Humidity">?</button>
                         <div class="label">Humidity</div>
                         <div class="value" id="humidity"></div>
                     </div>
                     <div class="detail-card">
+                        <button class="info-btn" data-metric="wind" aria-label="More info about Wind Speed">?</button>
                         <div class="label">Wind Speed</div>
                         <div class="value" id="wind"></div>
                     </div>
                     <div class="detail-card">
+                        <button class="info-btn" data-metric="uv" aria-label="More info about UV Index">?</button>
                         <div class="label">UV Index</div>
                         <div class="value" id="uv-index"></div>
                     </div>
                     <div class="detail-card">
+                        <button class="info-btn" data-metric="visibility" aria-label="More info about Visibility">?</button>
                         <div class="label">Visibility</div>
                         <div class="value" id="visibility"></div>
                     </div>
@@ -714,6 +840,83 @@
         let currentCoords = null;
         let weatherCache = {};
         let debounceTimer;
+        let currentWeatherData = null;
+
+        // Metric information data
+        const metricInfo = {
+            'feels-like': {
+                title: 'Feels Like Temperature',
+                description: 'The "feels like" temperature accounts for how wind and humidity affect our perception of temperature. Wind makes cold temperatures feel colder (wind chill), while high humidity makes warm temperatures feel hotter (heat index). This measurement helps you understand how the weather will actually feel on your skin.',
+                getStatus: (data, unit) => {
+                    const actual = Math.round(data.main.temp);
+                    const feels = Math.round(data.main.feels_like);
+                    const symbol = unit === 'metric' ? '°C' : '°F';
+                    const diff = feels - actual;
+                    let interpretation = '';
+                    if (diff > 3) interpretation = 'Feels warmer than actual temperature due to humidity.';
+                    else if (diff < -3) interpretation = 'Feels colder than actual temperature due to wind chill.';
+                    else interpretation = 'Feels close to the actual temperature.';
+                    return `<strong>Current:</strong> Feels like ${feels}${symbol} (actual: ${actual}${symbol})<br>${interpretation}`;
+                }
+            },
+            'humidity': {
+                title: 'Humidity',
+                description: 'Humidity measures the amount of water vapor in the air as a percentage of the maximum amount the air can hold at that temperature. High humidity (above 60%) can make hot days feel hotter and promotes mold growth. Low humidity (below 30%) can cause dry skin and respiratory discomfort.',
+                getStatus: (data) => {
+                    const humidity = data.main.humidity;
+                    let level, interpretation;
+                    if (humidity < 30) { level = 'Low'; interpretation = 'Air is dry. May cause dry skin and static electricity.'; }
+                    else if (humidity < 60) { level = 'Comfortable'; interpretation = 'Ideal humidity range for comfort.'; }
+                    else if (humidity < 80) { level = 'High'; interpretation = 'Air feels muggy. May feel warmer than actual temperature.'; }
+                    else { level = 'Very High'; interpretation = 'Very humid conditions. Potential for fog or precipitation.'; }
+                    return `<strong>Current:</strong> ${humidity}% (${level})<br>${interpretation}`;
+                }
+            },
+            'wind': {
+                title: 'Wind Speed',
+                description: 'Wind speed measures how fast air is moving horizontally past a given point. It\'s typically measured with an anemometer at 10 meters above ground. Wind affects perceived temperature, can impact outdoor activities, and at high speeds can be dangerous.',
+                getStatus: (data, unit) => {
+                    const speed = data.wind.speed;
+                    const speedUnit = unit === 'metric' ? 'm/s' : 'mph';
+                    const threshold = unit === 'metric' ? { light: 3, moderate: 8, strong: 14 } : { light: 7, moderate: 18, strong: 31 };
+                    let level, interpretation;
+                    if (speed < threshold.light) { level = 'Calm to Light'; interpretation = 'Barely noticeable wind. Great for outdoor activities.'; }
+                    else if (speed < threshold.moderate) { level = 'Moderate'; interpretation = 'Leaves and small branches move. Noticeable on skin.'; }
+                    else if (speed < threshold.strong) { level = 'Strong'; interpretation = 'Large branches sway. Walking may be difficult.'; }
+                    else { level = 'Very Strong'; interpretation = 'Whole trees in motion. Stay indoors if possible.'; }
+                    return `<strong>Current:</strong> ${speed} ${speedUnit} (${level})<br>${interpretation}`;
+                }
+            },
+            'uv': {
+                title: 'UV Index',
+                description: 'The UV Index measures the intensity of ultraviolet radiation from the sun. It was developed by the WHO to indicate potential skin damage. The scale typically ranges from 0-11+, with higher values meaning greater risk of harm from unprotected sun exposure.',
+                getStatus: (data) => {
+                    const uv = data.uvIndex;
+                    if (uv === 'N/A') return '<strong>Current:</strong> Data unavailable';
+                    let level, interpretation, protection;
+                    if (uv < 3) { level = 'Low'; interpretation = 'Minimal danger for average person.'; protection = 'Wear sunglasses on bright days.'; }
+                    else if (uv < 6) { level = 'Moderate'; interpretation = 'Moderate risk of harm from unprotected sun exposure.'; protection = 'Wear sunscreen SPF 30+, hat, and sunglasses.'; }
+                    else if (uv < 8) { level = 'High'; interpretation = 'High risk of harm from unprotected sun exposure.'; protection = 'Reduce sun exposure between 10am-4pm. Use SPF 30+.'; }
+                    else if (uv < 11) { level = 'Very High'; interpretation = 'Very high risk of harm.'; protection = 'Minimize sun exposure. SPF 30+ is essential.'; }
+                    else { level = 'Extreme'; interpretation = 'Extreme risk of harm.'; protection = 'Avoid sun exposure. Stay indoors if possible.'; }
+                    return `<strong>Current:</strong> ${uv} (${level})<br>${interpretation}<br><em>${protection}</em>`;
+                }
+            },
+            'visibility': {
+                title: 'Visibility',
+                description: 'Visibility measures the maximum distance at which objects can be clearly seen. It\'s affected by fog, rain, snow, dust, smoke, and air pollution. This measurement is crucial for driving, aviation, and outdoor activities.',
+                getStatus: (data) => {
+                    const vis = data.visibility / 1000; // Convert to km
+                    let level, interpretation;
+                    if (vis >= 10) { level = 'Excellent'; interpretation = 'Clear conditions. Perfect for all activities.'; }
+                    else if (vis >= 5) { level = 'Good'; interpretation = 'Good visibility. No significant impact on activities.'; }
+                    else if (vis >= 2) { level = 'Moderate'; interpretation = 'Some haze or mist. Drive with caution.'; }
+                    else if (vis >= 1) { level = 'Poor'; interpretation = 'Reduced visibility. Use headlights while driving.'; }
+                    else { level = 'Very Poor'; interpretation = 'Severely reduced visibility. Avoid driving if possible.'; }
+                    return `<strong>Current:</strong> ${vis.toFixed(1)} km (${level})<br>${interpretation}`;
+                }
+            }
+        };
 
         // Initialize weather effects
         function initWeatherEffects() {
@@ -816,6 +1019,40 @@
             unitBtns.forEach(btn => {
                 btn.addEventListener('click', () => handleUnitChange(btn.dataset.unit));
             });
+
+            // Info button listeners
+            const infoBtns = document.querySelectorAll('.info-btn');
+            const tooltipOverlay = document.getElementById('tooltip-overlay');
+            const infoTooltip = document.getElementById('info-tooltip');
+            const closeBtn = infoTooltip.querySelector('.close-btn');
+
+            infoBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const metric = btn.dataset.metric;
+                    showMetricInfo(metric);
+                });
+            });
+
+            closeBtn.addEventListener('click', hideMetricInfo);
+            tooltipOverlay.addEventListener('click', hideMetricInfo);
+        }
+
+        function showMetricInfo(metric) {
+            const info = metricInfo[metric];
+            if (!info || !currentWeatherData) return;
+
+            document.getElementById('tooltip-title').textContent = info.title;
+            document.getElementById('tooltip-description').textContent = info.description;
+            document.getElementById('tooltip-status').innerHTML = info.getStatus(currentWeatherData, currentUnit);
+
+            document.getElementById('tooltip-overlay').classList.add('active');
+            document.getElementById('info-tooltip').classList.add('active');
+        }
+
+        function hideMetricInfo() {
+            document.getElementById('tooltip-overlay').classList.remove('active');
+            document.getElementById('info-tooltip').classList.remove('active');
         }
 
         function debounceSearch() {
@@ -1040,6 +1277,9 @@
         function displayWeather(data, forecast) {
             const unitSymbol = currentUnit === 'metric' ? '°C' : '°F';
             const speedUnit = currentUnit === 'metric' ? 'm/s' : 'mph';
+
+            // Store weather data for info tooltips
+            currentWeatherData = data;
 
             // Update background based on weather
             updateBackground(data);
