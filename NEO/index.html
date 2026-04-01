@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEO Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: #020408;
+            color: #e0e8ff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #app {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* ── HEADER ── */
+        header {
+            background: rgba(8, 12, 28, 0.95);
+            border-bottom: 1px solid rgba(74, 158, 255, 0.2);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            z-index: 10;
+        }
+
+        header h1 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: #fff;
+        }
+
+        header h1 span { color: #4a9eff; }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-left: auto;
+        }
+
+        .controls label {
+            font-size: 0.78rem;
+            color: rgba(255,255,255,0.5);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .controls input[type="date"] {
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(74,158,255,0.3);
+            color: #fff;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            outline: none;
+        }
+
+        .controls input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.6; }
+
+        .source-toggle {
+            display: flex;
+            border: 1px solid rgba(74,158,255,0.3);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .source-btn {
+            background: transparent;
+            border: none;
+            color: rgba(255,255,255,0.5);
+            padding: 6px 12px;
+            font-size: 0.78rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .source-btn.active {
+            background: rgba(74,158,255,0.2);
+            color: #4a9eff;
+        }
+
+        #fetch-btn {
+            background: rgba(26, 58, 107, 0.8);
+            border: 1px solid #4a9eff;
+            color: #4a9eff;
+            padding: 6px 18px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.82rem;
+            transition: all 0.2s;
+        }
+
+        #fetch-btn:hover { background: #4a9eff; color: #fff; }
+        #fetch-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* ── MAIN ── */
+        main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* ── GLOBE ── */
+        #globe-container {
+            flex: 3;
+            position: relative;
+            overflow: hidden;
+            background: #020408;
+        }
+
+        #globe-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        #globe-legend {
+            position: absolute;
+            bottom: 18px;
+            left: 18px;
+            background: rgba(4, 8, 20, 0.85);
+            border: 1px solid rgba(74,158,255,0.15);
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.7);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            margin-bottom: 7px;
+        }
+
+        .legend-item:last-child { margin-bottom: 0; }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .legend-ring {
+            width: 20px;
+            height: 2px;
+            background: rgba(180,200,255,0.35);
+            flex-shrink: 0;
+        }
+
+        #globe-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(255,255,255,0.4);
+            font-size: 0.9rem;
+        }
+
+        #neo-hover {
+            position: absolute;
+            background: rgba(4, 8, 22, 0.96);
+            border: 1px solid rgba(74,158,255,0.35);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 0.78rem;
+            pointer-events: none;
+            display: none;
+            max-width: 210px;
+            z-index: 20;
+            line-height: 1.6;
+        }
+
+        #neo-hover h4 { color: #fff; margin-bottom: 5px; font-size: 0.82rem; }
+        #neo-hover p { color: rgba(255,255,255,0.65); }
+
+        /* ── DATA PANEL ── */
+        #data-panel {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            background: rgba(4, 8, 22, 0.98);
+            border-left: 1px solid rgba(74,158,255,0.12);
+            overflow: hidden;
+            min-width: 320px;
+        }
+
+        /* ── TABS ── */
+        .tab-bar {
+            display: flex;
+            border-bottom: 1px solid rgba(74,158,255,0.12);
+            flex-shrink: 0;
+            background: rgba(4, 8, 22, 0.98);
+        }
+
+        .tab-btn {
+            padding: 9px 14px;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: rgba(255,255,255,0.4);
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .tab-btn:hover { color: rgba(255,255,255,0.7); }
+
+        .tab-btn.active {
+            color: #4a9eff;
+            border-bottom-color: #4a9eff;
+        }
+
+        .tab-pane {
+            display: none;
+            flex: 1;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(74,158,255,0.25) transparent;
+        }
+
+        .tab-pane.active { display: flex; flex-direction: column; }
+
+        .tab-pane::-webkit-scrollbar { width: 5px; }
+        .tab-pane::-webkit-scrollbar-thumb { background: rgba(74,158,255,0.25); border-radius: 3px; }
+
+        /* Info tab content */
+        .info-content {
+            padding: 20px;
+            font-size: 0.82rem;
+            line-height: 1.7;
+            color: rgba(255,255,255,0.75);
+        }
+
+        .info-content h3 {
+            color: #4a9eff;
+            font-size: 0.95rem;
+            margin-bottom: 10px;
+            margin-top: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .info-content h3:first-child { margin-top: 0; }
+
+        .info-content p { margin-bottom: 10px; }
+
+        .info-content ul {
+            padding-left: 18px;
+            margin-bottom: 10px;
+        }
+
+        .info-content li { margin-bottom: 6px; }
+
+        .info-content .highlight {
+            background: rgba(74,158,255,0.1);
+            border-left: 3px solid #4a9eff;
+            padding: 10px 14px;
+            border-radius: 0 6px 6px 0;
+            margin: 12px 0;
+            color: rgba(255,255,255,0.85);
+        }
+
+        .info-content .warn {
+            background: rgba(255,80,80,0.1);
+            border-left: 3px solid #ff5555;
+            padding: 10px 14px;
+            border-radius: 0 6px 6px 0;
+            margin: 12px 0;
+            color: rgba(255,200,200,0.85);
+        }
+
+        .scale-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            font-size: 0.78rem;
+        }
+
+        .scale-table th {
+            background: rgba(74,158,255,0.1);
+            color: #4a9eff;
+            padding: 7px 10px;
+            text-align: left;
+            border-bottom: 1px solid rgba(74,158,255,0.2);
+        }
+
+        .scale-table td {
+            padding: 7px 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            color: rgba(255,255,255,0.7);
+        }
+
+        .scale-table tr:last-child td { border-bottom: none; }
+
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            border-bottom: 1px solid rgba(74,158,255,0.12);
+            flex-shrink: 0;
+        }
+
+        .stat-card {
+            padding: 14px 10px;
+            text-align: center;
+            border-right: 1px solid rgba(74,158,255,0.08);
+        }
+
+        .stat-card:last-child { border-right: none; }
+
+        .stat-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #4a9eff;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 0.65rem;
+            color: rgba(255,255,255,0.4);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-top: 5px;
+        }
+
+        .stat-card.danger .stat-value { color: #ff4a4a; }
+
+        #table-container {
+            flex: 1;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(74,158,255,0.25) transparent;
+        }
+
+        #table-container::-webkit-scrollbar { width: 5px; }
+        #table-container::-webkit-scrollbar-thumb { background: rgba(74,158,255,0.25); border-radius: 3px; }
+
+        #neo-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.78rem;
+        }
+
+        #neo-table thead {
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            background: rgba(6, 11, 28, 0.99);
+        }
+
+        #neo-table th {
+            padding: 10px 10px;
+            text-align: left;
+            color: rgba(255,255,255,0.4);
+            text-transform: uppercase;
+            font-size: 0.67rem;
+            letter-spacing: 0.8px;
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+            border-bottom: 1px solid rgba(74,158,255,0.15);
+            transition: color 0.15s;
+        }
+
+        #neo-table th:hover { color: #4a9eff; }
+        #neo-table th.sorted { color: #4a9eff; }
+
+        #neo-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.035);
+            color: rgba(255,255,255,0.8);
+            white-space: nowrap;
+        }
+
+        #neo-table tr:hover td { background: rgba(74,158,255,0.07); cursor: pointer; }
+        #neo-table tr.selected td { background: rgba(74,158,255,0.14); }
+
+        .pha-badge {
+            background: rgba(255,50,50,0.18);
+            color: #ff5555;
+            border: 1px solid rgba(255,50,50,0.35);
+            border-radius: 4px;
+            padding: 1px 7px;
+            font-size: 0.68rem;
+            font-weight: 700;
+        }
+
+        .safe-badge {
+            background: rgba(74,158,255,0.1);
+            color: rgba(120,180,255,0.7);
+            border: 1px solid rgba(74,158,255,0.18);
+            border-radius: 4px;
+            padding: 1px 7px;
+            font-size: 0.68rem;
+        }
+
+        .error-msg {
+            padding: 30px;
+            text-align: center;
+            color: #ff6060;
+            font-size: 0.85rem;
+        }
+
+        .no-data-msg {
+            padding: 30px;
+            text-align: center;
+            color: rgba(255,255,255,0.3);
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 900px) {
+            body { overflow: auto; }
+            main { flex-direction: column; }
+            #globe-container { min-height: 300px; }
+            #data-panel { min-width: unset; }
+            .stats-bar { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <header>
+        <h1>NEO <span>Dashboard</span></h1>
+        <div class="controls">
+            <label>From <input type="date" id="start-date"></label>
+            <label>To <input type="date" id="end-date"></label>
+            <div class="source-toggle">
+                <button class="source-btn active" data-source="neows">NeoWs</button>
+                <button class="source-btn" data-source="sbdb">SBDB</button>
+            </div>
+            <button id="fetch-btn">Fetch NEOs</button>
+        </div>
+    </header>
+
+    <main>
+        <div id="globe-container">
+            <canvas id="globe-canvas"></canvas>
+            <div id="neo-hover"></div>
+            <div id="globe-legend">
+                <div class="legend-item">
+                    <div class="legend-dot" style="background:#ff3333;box-shadow:0 0 6px #ff3333"></div>
+                    <span>Potentially Hazardous (PHA)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background:#4499ff;box-shadow:0 0 6px #4499ff"></div>
+                    <span>Non-Hazardous</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-ring"></div>
+                    <span>Moon Orbit (~1 LD = 384,400 km)</span>
+                </div>
+            </div>
+            <div id="globe-loading">Initializing 3D scene…</div>
+        </div>
+
+        <div id="data-panel">
+            <div class="stats-bar">
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-total">—</div>
+                    <div class="stat-label">Total NEOs</div>
+                </div>
+                <div class="stat-card danger">
+                    <div class="stat-value" id="stat-pha">—</div>
+                    <div class="stat-label">Hazardous</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-closest">—</div>
+                    <div class="stat-label">Closest (LD)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-fastest">—</div>
+                    <div class="stat-label">Fastest km/s</div>
+                </div>
+            </div>
+
+            <div class="tab-bar">
+                <button class="tab-btn active" data-tab="data">Live Data</button>
+                <button class="tab-btn" data-tab="about">About NEOs</button>
+                <button class="tab-btn" data-tab="hazard">Hazard Guide</button>
+                <button class="tab-btn" data-tab="sources">Data Sources</button>
+            </div>
+
+            <!-- TAB: Live Data -->
+            <div class="tab-pane active" id="tab-data">
+                <div id="table-container" style="flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(74,158,255,0.25) transparent;">
+                    <table id="neo-table">
+                        <thead>
+                            <tr>
+                                <th data-col="name">Name</th>
+                                <th data-col="date">Date</th>
+                                <th data-col="size">Size (m)</th>
+                                <th data-col="velocity">km/s</th>
+                                <th data-col="distance">Miss (LD)</th>
+                                <th data-col="hazard">Risk</th>
+                            </tr>
+                        </thead>
+                        <tbody id="neo-tbody">
+                            <tr><td colspan="6" class="no-data-msg">Select a date range and click Fetch NEOs</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB: About NEOs -->
+            <div class="tab-pane" id="tab-about">
+                <div class="info-content">
+                    <h3>What is a Near-Earth Object?</h3>
+                    <p>A Near-Earth Object (NEO) is any small Solar System body — asteroid or comet — whose orbit brings it within 1.3 AU (about 194 million km) of the Sun, and therefore within 0.3 AU of Earth's orbit.</p>
+
+                    <div class="highlight">
+                        As of 2024, over <strong>34,000 NEOs</strong> have been discovered. Around 2,300 are classified as Potentially Hazardous Asteroids (PHAs).
+                    </div>
+
+                    <h3>Types of NEOs</h3>
+                    <ul>
+                        <li><strong>Atiras</strong> — orbit entirely inside Earth's orbit</li>
+                        <li><strong>Atens</strong> — cross Earth's orbit, semi-major axis &lt; 1 AU</li>
+                        <li><strong>Apollos</strong> — cross Earth's orbit, semi-major axis &gt; 1 AU (largest group)</li>
+                        <li><strong>Amors</strong> — just outside Earth's orbit, don't cross it</li>
+                    </ul>
+
+                    <h3>How Are They Detected?</h3>
+                    <p>NEOs are discovered primarily by ground-based sky surveys:</p>
+                    <ul>
+                        <li><strong>Catalina Sky Survey (CSS)</strong> — responsible for the most NEO discoveries</li>
+                        <li><strong>Pan-STARRS</strong> — wide-field telescope in Hawaii</li>
+                        <li><strong>ATLAS</strong> — Asteroid Terrestrial-impact Last Alert System</li>
+                        <li><strong>NEOWISE</strong> — NASA space telescope (infrared)</li>
+                    </ul>
+
+                    <h3>What Happens During a Close Approach?</h3>
+                    <p>A "close approach" means an NEO passes near Earth — but rarely dangerously close. Most recorded close approaches occur at several lunar distances (LD). One LD = 384,400 km (the average Earth–Moon distance).</p>
+
+                    <h3>Miss Distance Units</h3>
+                    <table class="scale-table">
+                        <thead><tr><th>Unit</th><th>Distance</th><th>Reference</th></tr></thead>
+                        <tbody>
+                            <tr><td>1 LD</td><td>384,400 km</td><td>Earth to Moon</td></tr>
+                            <tr><td>1 AU</td><td>149,597,870 km</td><td>Earth to Sun</td></tr>
+                            <tr><td>1 AU</td><td>≈ 389 LD</td><td>—</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB: Hazard Guide -->
+            <div class="tab-pane" id="tab-hazard">
+                <div class="info-content">
+                    <h3>Potentially Hazardous Asteroids (PHAs)</h3>
+                    <p>An asteroid is classified as a PHA if it meets <em>both</em> criteria:</p>
+                    <ul>
+                        <li>Minimum Orbit Intersection Distance (MOID) ≤ 0.05 AU (~19.5 LD)</li>
+                        <li>Absolute magnitude H ≤ 22 (diameter roughly ≥ 140 m)</li>
+                    </ul>
+
+                    <div class="warn">
+                        A PHA designation does <strong>not</strong> mean an impact is predicted — only that the orbital geometry makes a future close approach possible.
+                    </div>
+
+                    <h3>The Torino Scale</h3>
+                    <p>Used to communicate impact risk to the public, from 0 (no risk) to 10 (certain catastrophic impact).</p>
+                    <table class="scale-table">
+                        <thead><tr><th>Level</th><th>Category</th><th>Meaning</th></tr></thead>
+                        <tbody>
+                            <tr><td style="color:#888">0</td><td>No Hazard</td><td>No consequence. Most NEOs.</td></tr>
+                            <tr><td style="color:#aadd44">1</td><td>Normal</td><td>Routine — merits monitoring.</td></tr>
+                            <tr><td style="color:#ffcc00">2–4</td><td>Meriting Attention</td><td>Close pass, low impact probability.</td></tr>
+                            <tr><td style="color:#ff8800">5–7</td><td>Threatening</td><td>Significant threat — national/global impact possible.</td></tr>
+                            <tr><td style="color:#ff3333">8–10</td><td>Certain Collision</td><td>Impact certain. Localized to global catastrophe.</td></tr>
+                        </tbody>
+                    </table>
+
+                    <h3>Size & Impact Energy</h3>
+                    <table class="scale-table">
+                        <thead><tr><th>Diameter</th><th>Effect</th></tr></thead>
+                        <tbody>
+                            <tr><td>&lt; 25 m</td><td>Burns up in atmosphere (fireball)</td></tr>
+                            <tr><td>25–50 m</td><td>Local blast (Tunguska 1908 ≈ 50 m)</td></tr>
+                            <tr><td>140 m – 1 km</td><td>Regional devastation</td></tr>
+                            <tr><td>1 – 5 km</td><td>Continental-scale damage</td></tr>
+                            <tr><td>&gt; 10 km</td><td>Mass extinction event (K-Pg impactor ≈ 10 km)</td></tr>
+                        </tbody>
+                    </table>
+
+                    <h3>Planetary Defense</h3>
+                    <p>NASA's Planetary Defense Coordination Office (PDCO) tracks all known PHAs. In 2022, the DART mission successfully deflected asteroid Dimorphos by 33 minutes — proving kinetic impactor technology works.</p>
+                </div>
+            </div>
+
+            <!-- TAB: Data Sources -->
+            <div class="tab-pane" id="tab-sources">
+                <div class="info-content">
+                    <h3>NeoWs — NASA Near Earth Object Web Service</h3>
+                    <p>Provided by NASA's Center for Near Earth Object Studies (CNEOS). Returns NEO close-approach data for a specified date window.</p>
+                    <ul>
+                        <li>Max date range: <strong>7 days per request</strong></li>
+                        <li>Includes: size estimates, velocity, miss distance, PHA flag</li>
+                        <li>Requires a free NASA API key</li>
+                        <li>Endpoint: <code style="color:#4a9eff">api.nasa.gov/neo/rest/v1/feed</code></li>
+                    </ul>
+
+                    <div class="highlight">
+                        Best for: daily close-approach feeds, structured data with hazard flags.
+                    </div>
+
+                    <h3>SBDB Close-Approach Data API — JPL</h3>
+                    <p>NASA Jet Propulsion Laboratory's Small-Body Database API. More powerful than NeoWs — no 7-day limit, richer filtering, and orbital data.</p>
+                    <ul>
+                        <li>No date range limit</li>
+                        <li>Filter by miss distance, PHA status, body type, magnitude</li>
+                        <li>No API key required</li>
+                        <li>Endpoint: <code style="color:#4a9eff">ssd-api.jpl.nasa.gov/cad.api</code></li>
+                    </ul>
+
+                    <div class="highlight">
+                        Best for: broader queries, orbital data, extended date ranges, custom filtering.
+                    </div>
+
+                    <h3>How to Get a NASA API Key</h3>
+                    <p>Visit <strong>api.nasa.gov</strong> and sign up for free. The key is emailed instantly and grants access to all NASA public APIs including NeoWs, APOD, Mars Rover Photos, and more. The free tier allows:</p>
+                    <ul>
+                        <li>1,000 requests per hour</li>
+                        <li>2,000 requests per day</li>
+                    </ul>
+
+                    <h3>Further Resources</h3>
+                    <ul>
+                        <li>NASA CNEOS — cneos.jpl.nasa.gov</li>
+                        <li>JPL Small-Body Database — ssd.jpl.nasa.gov</li>
+                        <li>ESA NEO Coordination Centre — neo.ssa.esa.int</li>
+                        <li>Planetary Defense — planetarydefense.nasa.gov</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ── CONFIG ───────────────────────────────────────────────────────────────────
+const NASA_KEY   = 'JgAc2Ea0FhRBzo4pji207l5jSdPGhOZF0xalsT3J';
+const NEOWS_URL  = 'https://api.nasa.gov/neo/rest/v1/feed';
+const SBDB_URL   = 'https://ssd-api.jpl.nasa.gov/cad.api';
+
+const EARTH_R      = 2;     // Three.js units
+const MOON_RING_R  = 14;    // 1 LD visual radius
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+let neos          = [];
+let neoMeshes     = [];
+let selectedIndex = null;
+let sortCol       = 'distance';
+let sortAsc       = true;
+let activeSource  = 'neows';
+
+// ── DATE DEFAULTS ─────────────────────────────────────────────────────────────
+const fmt   = d => d.toISOString().split('T')[0];
+const today = new Date();
+const plus7 = new Date(today); plus7.setDate(plus7.getDate() + 7);
+
+const startInput = document.getElementById('start-date');
+const endInput   = document.getElementById('end-date');
+startInput.value = fmt(today);
+endInput.value   = fmt(plus7);
+
+// ── SOURCE TOGGLE ─────────────────────────────────────────────────────────────
+document.querySelectorAll('.source-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        activeSource = btn.dataset.source;
+        document.querySelectorAll('.source-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        // SBDB doesn't need a date range — hide/show hints
+        const sbdb = activeSource === 'sbdb';
+        startInput.closest('label').style.opacity = sbdb ? '0.4' : '1';
+        endInput.closest('label').style.opacity   = sbdb ? '0.4' : '1';
+    });
+});
+
+// ── THREE.JS SETUP ────────────────────────────────────────────────────────────
+const canvas    = document.getElementById('globe-canvas');
+const container = document.getElementById('globe-container');
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(container.clientWidth, container.clientHeight);
+
+const scene  = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 600);
+camera.position.set(0, 6, 20);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping    = true;
+controls.dampingFactor    = 0.06;
+controls.minDistance      = EARTH_R + 1.5;
+controls.maxDistance      = 80;
+controls.autoRotate       = true;
+controls.autoRotateSpeed  = 0.25;
+
+// Lighting
+scene.add(new THREE.AmbientLight(0x223355, 2.5));
+const sun = new THREE.DirectionalLight(0xfff5e0, 2.8);
+sun.position.set(12, 6, 10);
+scene.add(sun);
+
+// Starfield
+const starPos = [];
+for (let i = 0; i < 5000; i++) {
+    const phi   = Math.acos(2 * Math.random() - 1);
+    const theta = Math.random() * Math.PI * 2;
+    const r     = 250 + Math.random() * 80;
+    starPos.push(r * Math.sin(phi) * Math.cos(theta), r * Math.sin(phi) * Math.sin(theta), r * Math.cos(phi));
+}
+const starGeo = new THREE.BufferGeometry();
+starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
+scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.45, sizeAttenuation: true })));
+
+// Earth
+const texLoader = new THREE.TextureLoader();
+const earthGeo  = new THREE.SphereGeometry(EARTH_R, 64, 64);
+const earthMat  = new THREE.MeshPhongMaterial({
+    map:         texLoader.load('https://cdn.jsdelivr.net/gh/mrdoob/three.js@dev/examples/textures/planets/earth_atmos_2048.jpg'),
+    bumpMap:     texLoader.load('https://cdn.jsdelivr.net/gh/mrdoob/three.js@dev/examples/textures/planets/earth_normal_2048.jpg'),
+    bumpScale:   0.04,
+    specularMap: texLoader.load('https://cdn.jsdelivr.net/gh/mrdoob/three.js@dev/examples/textures/planets/earth_specular_2048.jpg'),
+    specular:    new THREE.Color(0x3355aa),
+    shininess:   25,
+});
+const earth = new THREE.Mesh(earthGeo, earthMat);
+scene.add(earth);
+
+// Atmosphere glow
+const atmosMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(EARTH_R * 1.07, 64, 64),
+    new THREE.MeshPhongMaterial({ color: 0x1155ff, transparent: true, opacity: 0.07, side: THREE.FrontSide })
+);
+scene.add(atmosMesh);
+
+// Moon orbit ring
+const ringGeo = new THREE.RingGeometry(MOON_RING_R - 0.04, MOON_RING_R + 0.04, 128);
+const ringMat = new THREE.MeshBasicMaterial({ color: 0x2a3d5c, side: THREE.DoubleSide, transparent: true, opacity: 0.65 });
+const moonRing = new THREE.Mesh(ringGeo, ringMat);
+moonRing.rotation.x = Math.PI / 2;
+scene.add(moonRing);
+
+// ── RESIZE ───────────────────────────────────────────────────────────────────
+window.addEventListener('resize', () => {
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    camera.aspect = container.clientWidth / container.clientHeight;
+    camera.updateProjectionMatrix();
+});
+
+// ── RAYCASTING (hover & click) ─────────────────────────────────────────────────
+const raycaster = new THREE.Raycaster();
+const mouse     = new THREE.Vector2(-999, -999);
+const hoverEl   = document.getElementById('neo-hover');
+
+canvas.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    mouse.x = ((e.clientX - rect.left) / rect.width)  * 2 - 1;
+    mouse.y = -((e.clientY - rect.top)  / rect.height) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const hits = raycaster.intersectObjects(neoMeshes);
+    if (hits.length) {
+        const neo  = hits[0].object.userData.neo;
+        hoverEl.innerHTML = `
+            <h4>${neo.name}</h4>
+            <p>
+                Date: ${neo.date}<br>
+                Miss dist: ${parseFloat(neo.missDistanceLunar).toFixed(2)} LD<br>
+                Velocity: ${parseFloat(neo.velocity).toFixed(1)} km/s<br>
+                Size: ~${Math.round(neo.sizeMin)}–${Math.round(neo.sizeMax)} m
+            </p>`;
+        hoverEl.style.display = 'block';
+        const cRect = container.getBoundingClientRect();
+        hoverEl.style.left = (e.clientX - cRect.left + 16) + 'px';
+        hoverEl.style.top  = (e.clientY - cRect.top  + 16) + 'px';
+    } else {
+        hoverEl.style.display = 'none';
+    }
+});
+
+canvas.addEventListener('click', () => {
+    raycaster.setFromCamera(mouse, camera);
+    const hits = raycaster.intersectObjects(neoMeshes);
+    if (hits.length) selectNEO(hits[0].object.userData.index);
+});
+
+canvas.addEventListener('mouseleave', () => { hoverEl.style.display = 'none'; });
+
+// ── RENDER LOOP ───────────────────────────────────────────────────────────────
+function animate() {
+    requestAnimationFrame(animate);
+    earth.rotation.y += 0.0007;
+    controls.update();
+    renderer.render(scene, camera);
+}
+animate();
+document.getElementById('globe-loading').style.display = 'none';
+
+// ── NEO PLOTTING ──────────────────────────────────────────────────────────────
+function neoPosition(index, total, missDistanceLunar) {
+    const ld = Math.max(parseFloat(missDistanceLunar), 0.05);
+    const r  = Math.min(ld * MOON_RING_R, 58);      // 1 LD = MOON_RING_R units
+
+    // Fibonacci sphere distribution
+    const phi   = Math.acos(1 - 2 * (index + 0.5) / Math.max(total, 1));
+    const theta = Math.PI * (1 + Math.sqrt(5)) * index;
+
+    return new THREE.Vector3(
+        r * Math.sin(phi) * Math.cos(theta),
+        r * Math.sin(phi) * Math.sin(theta),
+        r * Math.cos(phi)
+    );
+}
+
+function plotNEOs(neoList) {
+    neoMeshes.forEach(m => {
+        scene.remove(m);
+        if (m._line) scene.remove(m._line);
+    });
+    neoMeshes = [];
+
+    neoList.forEach((neo, i) => {
+        const pos    = neoPosition(i, neoList.length, neo.missDistanceLunar);
+        const isPHA  = neo.isHazardous;
+        const color  = isPHA ? 0xff3333 : 0x4499ff;
+
+        const mesh = new THREE.Mesh(
+            new THREE.SphereGeometry(0.18, 12, 12),
+            new THREE.MeshBasicMaterial({ color })
+        );
+        mesh.position.copy(pos);
+        mesh.userData = { neo, index: i };
+
+        const line = new THREE.Line(
+            new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), pos]),
+            new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.15 })
+        );
+
+        scene.add(mesh);
+        scene.add(line);
+        mesh._line = line;
+        neoMeshes.push(mesh);
+    });
+}
+
+function highlightNEO(index) {
+    neoMeshes.forEach((m, i) => {
+        const isSelected = i === index;
+        m.scale.setScalar(isSelected ? 2.8 : 1);
+        m.material.color.set(isSelected ? 0xffff00 : (neos[i].isHazardous ? 0xff3333 : 0x4499ff));
+        if (m._line) m._line.material.opacity = isSelected ? 0.7 : 0.15;
+    });
+}
+
+// ── DATA FETCHING ─────────────────────────────────────────────────────────────
+async function fetchFromNeoWs(start, end) {
+    const res  = await fetch(`${NEOWS_URL}?start_date=${start}&end_date=${end}&api_key=${NASA_KEY}`);
+    if (!res.ok) throw new Error(`NeoWs API error ${res.status}: ${res.statusText}`);
+    const data = await res.json();
+
+    const result = [];
+    Object.values(data.near_earth_objects).forEach(dayList => {
+        dayList.forEach(neo => {
+            const ca = neo.close_approach_data[0];
+            result.push({
+                id:                neo.id,
+                name:              neo.name.replace(/[()]/g, '').trim(),
+                date:              ca.close_approach_date,
+                sizeMin:           neo.estimated_diameter.meters.estimated_diameter_min,
+                sizeMax:           neo.estimated_diameter.meters.estimated_diameter_max,
+                velocity:          ca.relative_velocity.kilometers_per_second,
+                missDistanceLunar: ca.miss_distance.lunar,
+                missDistanceKm:    ca.miss_distance.kilometers,
+                isHazardous:       neo.is_potentially_hazardous_asteroid,
+                nasaUrl:           neo.nasa_jpl_url,
+            });
+        });
+    });
+    return result;
+}
+
+async function fetchFromSBDB(start, end) {
+    const params = new URLSearchParams({
+        'date-min':  start,
+        'date-max':  end,
+        'dist-max':  '10LD',
+        'diameter':  'true',
+        'sort':      'dist',
+        'limit':     '100',
+    });
+    const res  = await fetch(`${SBDB_URL}?${params}`);
+    if (!res.ok) throw new Error(`SBDB API error ${res.status}`);
+    const data = await res.json();
+
+    if (!data.data || !data.data.length) return [];
+
+    // SBDB fields: des, orbit_id, jd, cd, dist, dist_min, dist_max, v_rel, v_inf, t_sigma_f, body, h, diameter, diameter_sigma, fullname
+    const fields = data.fields;
+    const iDes   = fields.indexOf('des');
+    const iCd    = fields.indexOf('cd');
+    const iDist  = fields.indexOf('dist');   // AU
+    const iVrel  = fields.indexOf('v_rel');
+    const iH     = fields.indexOf('h');
+    const iDiam  = fields.indexOf('diameter');
+    const iFull  = fields.indexOf('fullname');
+
+    const AU_TO_KM = 149597870.7;
+    const LD_KM    = 384400;
+
+    return data.data.map(row => {
+        const distKm    = parseFloat(row[iDist]) * AU_TO_KM;
+        const distLunar = distKm / LD_KM;
+        // Estimate size from H magnitude if no diameter given
+        const diam = row[iDiam] && row[iDiam] !== 'null' ? parseFloat(row[iDiam]) * 1000 : null; // km -> m
+        const hMag = row[iH] ? parseFloat(row[iH]) : null;
+        const sizeEst = diam ?? (hMag ? Math.round(1329000 / Math.sqrt(0.14) * Math.pow(10, -hMag / 5)) : 0);
+
+        return {
+            id:                row[iDes],
+            name:              (row[iFull] || row[iDes]).replace(/[()]/g, '').trim(),
+            date:              (row[iCd] || '').split(' ')[0],
+            sizeMin:           sizeEst * 0.7,
+            sizeMax:           sizeEst * 1.3,
+            velocity:          row[iVrel] ?? '—',
+            missDistanceLunar: distLunar.toFixed(4),
+            missDistanceKm:    distKm.toFixed(0),
+            isHazardous:       false,  // SBDB CAD doesn't flag PHAs directly
+            nasaUrl:           `https://ssd.jpl.nasa.gov/tools/sbdb_lookup.html#/?sstr=${encodeURIComponent(row[iDes])}`,
+        };
+    });
+}
+
+async function fetchNEOs() {
+    const start = startInput.value;
+    const end   = endInput.value;
+
+    if (activeSource === 'neows') {
+        if (!start || !end) { alert('Please select both dates.'); return; }
+        const diff = (new Date(end) - new Date(start)) / 86400000;
+        if (diff < 0) { alert('End date must be after start date.'); return; }
+        if (diff > 7) { alert('NeoWs supports a maximum 7-day window per request. Please shorten the range.'); return; }
+    }
+
+    const btn = document.getElementById('fetch-btn');
+    btn.textContent = 'Loading…';
+    btn.disabled    = true;
+
+    try {
+        neos = activeSource === 'neows'
+            ? await fetchFromNeoWs(start, end)
+            : await fetchFromSBDB(start, end);
+
+        selectedIndex = null;
+        renderTable();
+        updateStats();
+        plotNEOs(neos);
+
+    } catch (err) {
+        document.getElementById('neo-tbody').innerHTML =
+            `<tr><td colspan="6" class="error-msg">${err.message}</td></tr>`;
+        console.error(err);
+    } finally {
+        btn.textContent = 'Fetch NEOs';
+        btn.disabled    = false;
+    }
+}
+
+// ── TABLE ─────────────────────────────────────────────────────────────────────
+function sortedNEOs() {
+    return [...neos].sort((a, b) => {
+        let va, vb;
+        switch (sortCol) {
+            case 'name':     va = a.name;                         vb = b.name;                         break;
+            case 'date':     va = a.date;                         vb = b.date;                         break;
+            case 'size':     va = a.sizeMax;                      vb = b.sizeMax;                      break;
+            case 'velocity': va = parseFloat(a.velocity);         vb = parseFloat(b.velocity);         break;
+            case 'distance': va = parseFloat(a.missDistanceLunar);vb = parseFloat(b.missDistanceLunar);break;
+            case 'hazard':   va = a.isHazardous ? 0 : 1;         vb = b.isHazardous ? 0 : 1;         break;
+            default:         return 0;
+        }
+        if (va < vb) return sortAsc ? -1 : 1;
+        if (va > vb) return sortAsc ?  1 : -1;
+        return 0;
+    });
+}
+
+function renderTable() {
+    if (!neos.length) {
+        document.getElementById('neo-tbody').innerHTML =
+            `<tr><td colspan="6" class="no-data-msg">No NEOs found for this range.</td></tr>`;
+        return;
+    }
+
+    const sorted = sortedNEOs();
+    const tbody  = document.getElementById('neo-tbody');
+
+    tbody.innerHTML = sorted.map(neo => {
+        const realIdx = neos.indexOf(neo);
+        return `
+        <tr data-index="${realIdx}" class="${selectedIndex === realIdx ? 'selected' : ''}">
+            <td>
+                <a href="${neo.nasaUrl}" target="_blank" rel="noopener"
+                   style="color:inherit;text-decoration:none"
+                   title="Open in NASA JPL">${neo.name}</a>
+            </td>
+            <td>${neo.date}</td>
+            <td>${neo.sizeMin || neo.sizeMax ? `${Math.round(neo.sizeMin)}–${Math.round(neo.sizeMax)}` : '—'}</td>
+            <td>${isNaN(parseFloat(neo.velocity)) ? '—' : parseFloat(neo.velocity).toFixed(1)}</td>
+            <td>${parseFloat(neo.missDistanceLunar).toFixed(2)}</td>
+            <td>${neo.isHazardous ? '<span class="pha-badge">PHA</span>' : '<span class="safe-badge">Safe</span>'}</td>
+        </tr>`;
+    }).join('');
+
+    tbody.querySelectorAll('tr').forEach(row => {
+        row.addEventListener('click', () => selectNEO(parseInt(row.dataset.index)));
+    });
+
+    document.querySelectorAll('#neo-table th').forEach(th => {
+        const isActive = th.dataset.col === sortCol;
+        th.classList.toggle('sorted', isActive);
+        th.dataset.label = th.dataset.label || th.textContent;
+        th.textContent   = th.dataset.label + (isActive ? (sortAsc ? ' ▲' : ' ▼') : '');
+    });
+}
+
+function updateStats() {
+    const pha     = neos.filter(n => n.isHazardous).length;
+    const dists   = neos.map(n => parseFloat(n.missDistanceLunar)).filter(v => !isNaN(v));
+    const speeds  = neos.map(n => parseFloat(n.velocity)).filter(v => !isNaN(v));
+
+    document.getElementById('stat-total').textContent   = neos.length || '—';
+    document.getElementById('stat-pha').textContent     = pha || '0';
+    document.getElementById('stat-closest').textContent = dists.length ? Math.min(...dists).toFixed(2) : '—';
+    document.getElementById('stat-fastest').textContent = speeds.length ? Math.max(...speeds).toFixed(1) : '—';
+}
+
+function selectNEO(index) {
+    selectedIndex = index;
+    highlightNEO(index);
+    renderTable();
+    const row = document.querySelector(`#neo-tbody tr[data-index="${index}"]`);
+    if (row) row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    // Pause autorotate briefly on selection
+    controls.autoRotate = false;
+    setTimeout(() => { controls.autoRotate = true; }, 3000);
+}
+
+// ── TABLE SORT HEADERS ────────────────────────────────────────────────────────
+document.querySelectorAll('#neo-table th').forEach(th => {
+    th.dataset.label = th.textContent;
+    th.addEventListener('click', () => {
+        sortAsc = sortCol === th.dataset.col ? !sortAsc : true;
+        sortCol = th.dataset.col;
+        renderTable();
+    });
+});
+
+// ── TAB SWITCHING ─────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+    });
+});
+
+// ── FETCH BUTTON ──────────────────────────────────────────────────────────────
+document.getElementById('fetch-btn').addEventListener('click', fetchNEOs);
+
+// Auto-load on open
+fetchNEOs();
+</script>
+</body>
+</html>
