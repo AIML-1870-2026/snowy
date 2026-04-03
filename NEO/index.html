@@ -446,7 +446,7 @@
                 <button class="source-btn active" data-source="neows">NeoWs</button>
                 <button class="source-btn" data-source="sbdb">SBDB</button>
             </div>
-            <button id="fetch-btn">Fetch NEOs</button>
+            <button id="fetch-btn">Refresh Info</button>
         </div>
     </header>
 
@@ -991,7 +991,7 @@ async function fetchNEOs() {
             `<tr><td colspan="6" class="error-msg">${err.message}</td></tr>`;
         console.error(err);
     } finally {
-        btn.textContent = 'Fetch NEOs';
+        btn.textContent = 'Refresh Info';
         btn.disabled    = false;
     }
 }
