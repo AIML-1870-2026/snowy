@@ -415,7 +415,7 @@
   </header>
 
   <div class="disclaimer">
-    <strong>Educational purposes only.</strong> This tool is not a substitute for professional medical advice, diagnosis, or treatment. Data sourced from the U.S. FDA OpenFDA API.
+    This product uses publicly available data from the U.S. Food and Drug Administration (FDA). FDA is not responsible for this product and does not endorse or recommend this or any other product. &nbsp;|&nbsp; <strong>For educational purposes only.</strong> Not a substitute for professional medical advice, diagnosis, or treatment.
   </div>
 
   <main>
@@ -744,10 +744,10 @@
       const isNotFound = msg.includes('404') || msg === 'API error 404';
       container.innerHTML = `
         <div class="error-icon">${isNotFound ? '🔍' : '⚠️'}</div>
-        <div class="error-title">${isNotFound ? 'No data found' : 'API Error'}</div>
+        <div class="error-title">${isNotFound ? 'Drug Not Found' : 'API Error'}</div>
         <div class="error-msg">
           ${isNotFound
-            ? `"${escHtml(name)}" was not found in OpenFDA. Check the spelling, or try a brand name or generic name.`
+            ? `<strong>"${escHtml(name)}"</strong> does not exist in the OpenFDA database. This may mean the drug is not recognized, was entered incorrectly, or has no FDA records. Try checking the spelling or searching by brand name or generic name (e.g. "acetaminophen" instead of "Tylenol").`
             : `Could not load data for "${escHtml(name)}". ${escHtml(msg)}`}
         </div>
         <button class="retry-btn" onclick="retryCard('${escHtml(name)}', '${slug}')">Retry</button>
