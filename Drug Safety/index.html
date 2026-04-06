@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Drug Safety Explorer</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3250;
+      --text: #e2e8f0;
+      --text-muted: #7b82a0;
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+      --red: #ef4444;
+      --orange: #f97316;
+      --yellow: #eab308;
+      --green: #22c55e;
+      --gray: #64748b;
+      --red-bg: rgba(239,68,68,0.12);
+      --orange-bg: rgba(249,115,22,0.12);
+      --yellow-bg: rgba(234,179,8,0.12);
+      --gray-bg: rgba(100,116,139,0.12);
+    }
+    [data-theme="light"] {
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --surface2: #f8fafc;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --red-bg: rgba(239,68,68,0.08);
+      --orange-bg: rgba(249,115,22,0.08);
+      --yellow-bg: rgba(234,179,8,0.08);
+      --gray-bg: rgba(100,116,139,0.08);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .logo { display: flex; align-items: center; gap: 0.6rem; }
+    .logo svg { color: var(--accent); flex-shrink: 0; }
+    .logo h1 { font-size: 1.2rem; font-weight: 700; letter-spacing: -0.02em; }
+    .logo span { color: var(--accent); }
+    .theme-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 0.4rem 0.75rem;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: border-color 0.15s;
+    }
+    .theme-btn:hover { border-color: var(--accent); }
+
+    /* ── Disclaimer ── */
+    .disclaimer {
+      background: rgba(99,102,241,0.1);
+      border-bottom: 1px solid rgba(99,102,241,0.25);
+      padding: 0.6rem 1.5rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+    .disclaimer strong { color: var(--accent); }
+
+    /* ── Search area ── */
+    main { padding: 2rem 1.5rem; max-width: 1400px; margin: 0 auto; }
+    .search-area {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .search-area h2 { font-size: 0.9rem; font-weight: 600; color: var(--text-muted); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .search-inputs { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: flex-end; }
+    .search-slot { display: flex; flex-direction: column; gap: 0.4rem; flex: 1; min-width: 180px; }
+    .search-slot label { font-size: 0.78rem; color: var(--text-muted); }
+    .search-slot input {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.55rem 0.85rem;
+      color: var(--text);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.15s;
+      width: 100%;
+    }
+    .search-slot input:focus { border-color: var(--accent); }
+    .search-slot input::placeholder { color: var(--text-muted); }
+    .search-actions { display: flex; gap: 0.6rem; align-items: flex-end; flex-wrap: wrap; }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 0.55rem 1.25rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.55rem 1rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: border-color 0.15s;
+      white-space: nowrap;
+    }
+    .btn-secondary:hover { border-color: var(--accent); }
+    .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Cards grid ── */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 1.25rem;
+      align-items: start;
+    }
+
+    /* ── Drug card ── */
+    .drug-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 1rem 1.25rem 0.85rem;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .card-header-left { flex: 1; min-width: 0; }
+    .drug-name {
+      font-size: 1.1rem;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .drug-generic { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem; }
+    .severity-badge {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      border-radius: 20px;
+      padding: 0.3rem 0.7rem;
+      white-space: nowrap;
+    }
+    .severity-badge.red    { background: var(--red-bg);    color: var(--red); }
+    .severity-badge.orange { background: var(--orange-bg); color: var(--orange); }
+    .severity-badge.yellow { background: var(--yellow-bg); color: var(--yellow); }
+    .severity-badge.gray   { background: var(--gray-bg);   color: var(--gray); }
+    .severity-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+    .remove-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 0.25rem;
+      border-radius: 5px;
+      line-height: 1;
+      font-size: 1rem;
+      transition: color 0.15s;
+    }
+    .remove-btn:hover { color: var(--red); }
+
+    .card-body { padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 1rem; }
+
+    /* ── Section inside card ── */
+    .card-section { display: flex; flex-direction: column; gap: 0.5rem; }
+    .section-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .report-count {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 0.1rem 0.5rem;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    /* ── Reaction tags ── */
+    .reactions { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .reaction-tag {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 0.2rem 0.65rem;
+      font-size: 0.78rem;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .reaction-count {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      background: var(--bg);
+      border-radius: 10px;
+      padding: 0 0.35rem;
+    }
+    .empty-note {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-style: italic;
+      padding: 0.5rem 0;
+    }
+
+    /* ── Timeline ── */
+    .timeline { display: flex; flex-direction: column; gap: 0; }
+    .timeline-item {
+      display: flex;
+      gap: 0.75rem;
+      padding: 0.6rem 0;
+      border-left: 2px solid var(--border);
+      padding-left: 1rem;
+      margin-left: 0.35rem;
+      position: relative;
+    }
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -5px;
+      top: 0.9rem;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--border);
+    }
+    .timeline-item.class-I::before  { background: var(--red); }
+    .timeline-item.class-II::before { background: var(--orange); }
+    .timeline-item.class-III::before{ background: var(--yellow); }
+    .timeline-content { flex: 1; min-width: 0; }
+    .timeline-date { font-size: 0.72rem; color: var(--text-muted); }
+    .timeline-reason {
+      font-size: 0.82rem;
+      color: var(--text);
+      margin-top: 0.15rem;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .timeline-class {
+      font-size: 0.7rem;
+      font-weight: 600;
+      border-radius: 4px;
+      padding: 0.1rem 0.4rem;
+      white-space: nowrap;
+      align-self: flex-start;
+      margin-top: 0.2rem;
+    }
+    .class-I    .timeline-class { background: var(--red-bg);    color: var(--red); }
+    .class-II   .timeline-class { background: var(--orange-bg); color: var(--orange); }
+    .class-III  .timeline-class { background: var(--yellow-bg); color: var(--yellow); }
+
+    /* ── Expand buttons ── */
+    .expand-btns { display: flex; flex-wrap: wrap; gap: 0.5rem; padding-top: 0.25rem; }
+    .expand-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.4rem 0.8rem;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .expand-btn:hover { border-color: var(--accent); color: var(--text); }
+    .expand-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(99,102,241,0.08); }
+    .expand-panel {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.9rem 1rem;
+      font-size: 0.82rem;
+      line-height: 1.6;
+      color: var(--text);
+      display: none;
+    }
+    .expand-panel.open { display: block; }
+    .expand-panel p { margin-bottom: 0.5rem; }
+    .expand-panel p:last-child { margin-bottom: 0; }
+    .expand-panel strong { color: var(--text); }
+    .expand-panel .full-reactions { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+
+    /* ── Skeleton ── */
+    .skeleton {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .skel-line {
+      background: var(--surface2);
+      border-radius: 6px;
+      height: 14px;
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+    .skel-line.short { width: 40%; }
+    .skel-line.medium { width: 65%; }
+    .skel-line.tall { height: 10px; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* ── Error card ── */
+    .error-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.5rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+      text-align: center;
+    }
+    .error-icon { font-size: 2rem; }
+    .error-title { font-size: 1rem; font-weight: 600; }
+    .error-msg { font-size: 0.85rem; color: var(--text-muted); max-width: 260px; line-height: 1.5; }
+    .retry-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.45rem 1rem;
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: var(--text);
+      transition: border-color 0.15s;
+    }
+    .retry-btn:hover { border-color: var(--accent); }
+
+    /* ── Empty state ── */
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--text-muted);
+    }
+    .empty-state svg { margin-bottom: 1rem; opacity: 0.3; }
+    .empty-state p { font-size: 0.95rem; }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      main { padding: 1.25rem 1rem; }
+      header { padding: 0.85rem 1rem; }
+      .cards-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0 0h18"/>
+      </svg>
+      <h1>Drug Safety <span>Explorer</span></h1>
+    </div>
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">Light Mode</button>
+  </header>
+
+  <div class="disclaimer">
+    <strong>Educational purposes only.</strong> This tool is not a substitute for professional medical advice, diagnosis, or treatment. Data sourced from the U.S. FDA OpenFDA API.
+  </div>
+
+  <main>
+    <div class="search-area">
+      <h2>Compare Drugs</h2>
+      <div class="search-inputs" id="searchInputs">
+        <div class="search-slot" id="slot-0">
+          <label>Drug 1</label>
+          <input type="text" placeholder="e.g. ibuprofen" id="drug-0" onkeydown="handleKey(event)">
+        </div>
+        <div class="search-slot" id="slot-1">
+          <label>Drug 2</label>
+          <input type="text" placeholder="e.g. aspirin" id="drug-1" onkeydown="handleKey(event)">
+        </div>
+      </div>
+      <div class="search-actions" style="margin-top:1rem;">
+        <button class="btn-primary" onclick="runComparison()">Compare</button>
+        <button class="btn-secondary" id="addDrugBtn" onclick="addSlot()">+ Add Drug</button>
+        <button class="btn-secondary" onclick="clearAll()">Clear</button>
+      </div>
+    </div>
+
+    <div class="cards-grid" id="cardsGrid">
+      <div class="empty-state">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <p>Enter one or more drug names above and click Compare.</p>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // ── Theme ──
+    function toggleTheme() {
+      const isDark = !document.body.hasAttribute('data-theme');
+      if (isDark) {
+        document.body.setAttribute('data-theme', 'light');
+        document.getElementById('themeBtn').textContent = 'Dark Mode';
+      } else {
+        document.body.removeAttribute('data-theme');
+        document.getElementById('themeBtn').textContent = 'Light Mode';
+      }
+    }
+
+    // ── Slot management ──
+    let slotCount = 2;
+    function addSlot() {
+      if (slotCount >= 3) return;
+      const idx = slotCount++;
+      const slot = document.createElement('div');
+      slot.className = 'search-slot';
+      slot.id = `slot-${idx}`;
+      slot.innerHTML = `
+        <label>Drug ${idx + 1}</label>
+        <input type="text" placeholder="e.g. warfarin" id="drug-${idx}" onkeydown="handleKey(event)">
+      `;
+      document.getElementById('searchInputs').appendChild(slot);
+      if (slotCount >= 3) document.getElementById('addDrugBtn').disabled = true;
+      document.getElementById(`drug-${idx}`).focus();
+    }
+
+    function handleKey(e) {
+      if (e.key === 'Enter') runComparison();
+    }
+
+    function clearAll() {
+      // Reset slots to 2
+      slotCount = 2;
+      const inputs = document.getElementById('searchInputs');
+      inputs.innerHTML = `
+        <div class="search-slot" id="slot-0">
+          <label>Drug 1</label>
+          <input type="text" placeholder="e.g. ibuprofen" id="drug-0" onkeydown="handleKey(event)">
+        </div>
+        <div class="search-slot" id="slot-1">
+          <label>Drug 2</label>
+          <input type="text" placeholder="e.g. aspirin" id="drug-1" onkeydown="handleKey(event)">
+        </div>
+      `;
+      document.getElementById('addDrugBtn').disabled = false;
+      document.getElementById('cardsGrid').innerHTML = `
+        <div class="empty-state">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <p>Enter one or more drug names above and click Compare.</p>
+        </div>`;
+    }
+
+    // ── Main comparison ──
+    async function runComparison() {
+      const names = [];
+      for (let i = 0; i < slotCount; i++) {
+        const val = (document.getElementById(`drug-${i}`)?.value || '').trim();
+        if (val) names.push(val);
+      }
+      if (names.length === 0) return;
+
+      // Deduplicate (case-insensitive)
+      const seen = new Set();
+      const unique = names.filter(n => {
+        const k = n.toLowerCase();
+        if (seen.has(k)) return false;
+        seen.add(k); return true;
+      });
+
+      const grid = document.getElementById('cardsGrid');
+      grid.innerHTML = '';
+      unique.forEach(name => grid.appendChild(makeSkeleton(name)));
+
+      // Fetch all in parallel
+      await Promise.all(unique.map((name, i) => fetchDrug(name, i)));
+    }
+
+    function makeSkeleton(name) {
+      const el = document.createElement('div');
+      el.className = 'skeleton';
+      el.id = `card-${slugify(name)}`;
+      el.innerHTML = `
+        <div class="skel-line medium"></div>
+        <div class="skel-line short tall"></div>
+        <div class="skel-line" style="width:80%;margin-top:4px"></div>
+        <div class="skel-line" style="width:55%"></div>
+        <div class="skel-line" style="width:70%"></div>
+        <div class="skel-line short" style="margin-top:8px"></div>
+        <div class="skel-line" style="width:60%"></div>
+      `;
+      return el;
+    }
+
+    function slugify(name) {
+      return name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+    }
+
+    const BASE = 'https://api.fda.gov';
+
+    async function fetchDrug(name, idx) {
+      const slug = slugify(name);
+      try {
+        const [eventsData, recallsData, labelData] = await Promise.all([
+          fdaFetch(`${BASE}/drug/event.json?search=patient.drug.medicinalproduct:"${encodeURIComponent(name)}"&count=patient.reaction.reactionmeddrapt.exact&limit=100`),
+          fdaFetch(`${BASE}/drug/enforcement.json?search=product_description:"${encodeURIComponent(name)}"&limit=20`),
+          fdaFetch(`${BASE}/drug/label.json?search=openfda.brand_name:"${encodeURIComponent(name)}"&limit=1`)
+        ]);
+
+        // Severity: also fetch outcome breakdown
+        const severityData = await fdaFetch(`${BASE}/drug/event.json?search=patient.drug.medicinalproduct:"${encodeURIComponent(name)}"&count=patient.reaction.reactionoutcome&limit=10`);
+
+        renderCard(name, eventsData, recallsData, labelData, severityData, slug);
+      } catch (err) {
+        renderError(name, err.message, slug);
+      }
+    }
+
+    async function fdaFetch(url) {
+      const res = await fetch(url);
+      if (res.status === 404) return null; // no results
+      if (!res.ok) throw new Error(`API error ${res.status}`);
+      return res.json();
+    }
+
+    // ── Severity logic ──
+    // OpenFDA outcome codes: 1=recovered, 2=recovering, 3=not recovered, 4=unknown, 5=fatal, 6=serious
+    function getSeverity(severityData) {
+      if (!severityData || !severityData.results) return 'gray';
+      const results = severityData.results;
+      // term is the outcome code as string
+      const find = (code) => results.find(r => String(r.term) === String(code));
+      if (find(5) || find(6)) return 'red';    // fatal or serious
+      if (find(3) || find(4)) return 'orange'; // not recovered / unknown
+      if (find(1) || find(2)) return 'yellow'; // recovered/recovering
+      return 'gray';
+    }
+
+    const severityLabels = {
+      red: 'Serious / Fatal',
+      orange: 'Hospitalization',
+      yellow: 'Non-serious',
+      gray: 'Unknown Severity'
+    };
+
+    // ── Render card ──
+    function renderCard(name, eventsData, recallsData, labelData, severityData, slug) {
+      const container = document.getElementById(`card-${slug}`);
+      if (!container) return;
+
+      const severity = getSeverity(severityData);
+      const reactions = eventsData?.results || [];
+      const recalls = recallsData?.results || [];
+      const label = labelData?.results?.[0] || null;
+
+      const totalReports = eventsData?.meta?.results?.total ?? 0;
+      const genericName = label?.openfda?.generic_name?.[0] || label?.openfda?.substance_name?.[0] || '';
+
+      // Top 10 reactions
+      const top10 = reactions.slice(0, 10);
+
+      container.className = 'drug-card';
+      container.innerHTML = `
+        <div class="card-header">
+          <div class="card-header-left">
+            <div class="drug-name">${escHtml(name.toUpperCase())}</div>
+            ${genericName && genericName.toLowerCase() !== name.toLowerCase()
+              ? `<div class="drug-generic">${escHtml(genericName)}</div>` : ''}
+          </div>
+          <div style="display:flex;align-items:center;gap:0.5rem">
+            <div class="severity-badge ${severity}">
+              <span class="severity-dot"></span>
+              ${severityLabels[severity]}
+            </div>
+            <button class="remove-btn" title="Remove card" onclick="removeCard('${slug}')">✕</button>
+          </div>
+        </div>
+        <div class="card-body">
+
+          <!-- Adverse Effects -->
+          <div class="card-section">
+            <div class="section-title">
+              Adverse Effects
+              <span class="report-count">${totalReports.toLocaleString()} reports</span>
+            </div>
+            ${top10.length === 0
+              ? `<div class="empty-note">No adverse events on record — absence of data is not evidence of safety.</div>`
+              : `<div class="reactions" id="reactions-short-${slug}">
+                  ${top10.map(r => `
+                    <span class="reaction-tag">
+                      ${escHtml(titleCase(r.term))}
+                      <span class="reaction-count">${r.count.toLocaleString()}</span>
+                    </span>`).join('')}
+                </div>`
+            }
+          </div>
+
+          <!-- Recalls Timeline -->
+          <div class="card-section">
+            <div class="section-title">Market Withdrawals & Recalls</div>
+            ${buildTimeline(recalls)}
+          </div>
+
+          <!-- Optional expand buttons -->
+          <div class="card-section">
+            <div class="expand-btns">
+              ${label ? `<button class="expand-btn" id="btn-label-${slug}" onclick="togglePanel('label-${slug}', this)">
+                ▸ Label & Warnings
+              </button>` : ''}
+              ${reactions.length > 10 ? `<button class="expand-btn" id="btn-full-${slug}" onclick="togglePanel('full-${slug}', this)">
+                ▸ All ${reactions.length} Reactions
+              </button>` : ''}
+              ${recalls.length > 0 ? `<button class="expand-btn" id="btn-recall-${slug}" onclick="togglePanel('recall-${slug}', this)">
+                ▸ Recall Details
+              </button>` : ''}
+            </div>
+
+            <!-- Label panel -->
+            ${label ? `<div class="expand-panel" id="panel-label-${slug}">
+              ${buildLabelPanel(label)}
+            </div>` : ''}
+
+            <!-- Full reactions panel -->
+            ${reactions.length > 10 ? `<div class="expand-panel" id="panel-full-${slug}">
+              <div class="full-reactions">
+                ${reactions.map(r => `
+                  <span class="reaction-tag">
+                    ${escHtml(titleCase(r.term))}
+                    <span class="reaction-count">${r.count.toLocaleString()}</span>
+                  </span>`).join('')}
+              </div>
+            </div>` : ''}
+
+            <!-- Recall details panel -->
+            ${recalls.length > 0 ? `<div class="expand-panel" id="panel-recall-${slug}">
+              ${buildRecallDetails(recalls)}
+            </div>` : ''}
+          </div>
+
+        </div>
+      `;
+    }
+
+    function buildTimeline(recalls) {
+      if (recalls.length === 0) {
+        return `<div class="empty-note">No recalls or market withdrawals found.</div>`;
+      }
+      const items = recalls.slice(0, 5).map(r => {
+        const cls = `class-${r.classification?.replace(' ', '') || 'III'}`;
+        const date = formatDate(r.recall_initiation_date);
+        const reason = r.reason_for_recall || 'Reason not specified';
+        const classLabel = r.classification || '—';
+        return `
+          <div class="timeline-item ${cls}">
+            <div class="timeline-content">
+              <div class="timeline-date">${date}${r.voluntary_mandated ? ' · ' + r.voluntary_mandated : ''}</div>
+              <div class="timeline-reason">${escHtml(reason)}</div>
+              <span class="timeline-class">${escHtml(classLabel)}</span>
+            </div>
+          </div>`;
+      }).join('');
+      return `<div class="timeline">${items}</div>`;
+    }
+
+    function buildLabelPanel(label) {
+      const sections = [
+        ['Indications & Usage', label.indications_and_usage?.[0]],
+        ['Warnings', label.warnings?.[0] || label.warnings_and_cautions?.[0]],
+        ['Contraindications', label.contraindications?.[0]],
+      ].filter(([, v]) => v);
+      if (sections.length === 0) return '<p>No label information available.</p>';
+      return sections.map(([title, text]) =>
+        `<p><strong>${title}:</strong> ${escHtml(truncate(text, 300))}</p>`
+      ).join('');
+    }
+
+    function buildRecallDetails(recalls) {
+      return recalls.map(r => `
+        <p><strong>${formatDate(r.recall_initiation_date)} — ${escHtml(r.classification || '—')}</strong><br>
+        ${escHtml(r.reason_for_recall || 'No reason provided.')}<br>
+        <span style="color:var(--text-muted);font-size:0.75rem">${escHtml(r.distribution_pattern || '')}</span></p>
+      `).join('');
+    }
+
+    function renderError(name, msg, slug) {
+      const container = document.getElementById(`card-${slug}`);
+      if (!container) return;
+      container.className = 'error-card';
+      const isNotFound = msg.includes('404') || msg === 'API error 404';
+      container.innerHTML = `
+        <div class="error-icon">${isNotFound ? '🔍' : '⚠️'}</div>
+        <div class="error-title">${isNotFound ? 'No data found' : 'API Error'}</div>
+        <div class="error-msg">
+          ${isNotFound
+            ? `"${escHtml(name)}" was not found in OpenFDA. Check the spelling, or try a brand name or generic name.`
+            : `Could not load data for "${escHtml(name)}". ${escHtml(msg)}`}
+        </div>
+        <button class="retry-btn" onclick="retryCard('${escHtml(name)}', '${slug}')">Retry</button>
+        <button class="remove-btn" style="margin-top:-0.25rem" onclick="removeCard('${slug}')">Remove</button>
+      `;
+    }
+
+    async function retryCard(name, slug) {
+      const container = document.getElementById(`card-${slug}`);
+      if (!container) return;
+      container.className = 'skeleton';
+      container.innerHTML = `<div class="skel-line medium"></div><div class="skel-line short"></div>`;
+      await fetchDrug(name, 0);
+    }
+
+    function removeCard(slug) {
+      const el = document.getElementById(`card-${slug}`);
+      if (el) el.remove();
+      const grid = document.getElementById('cardsGrid');
+      if (grid.children.length === 0) {
+        grid.innerHTML = `<div class="empty-state">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <p>Enter one or more drug names above and click Compare.</p>
+        </div>`;
+      }
+    }
+
+    function togglePanel(id, btn) {
+      const panel = document.getElementById(`panel-${id}`);
+      if (!panel) return;
+      const isOpen = panel.classList.toggle('open');
+      btn.classList.toggle('active', isOpen);
+      btn.textContent = (isOpen ? '▾ ' : '▸ ') + btn.textContent.replace(/^[▸▾]\s*/, '');
+    }
+
+    // ── Helpers ──
+    function escHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function titleCase(str) {
+      return String(str ?? '').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+    }
+
+    function truncate(str, max) {
+      if (!str) return '';
+      str = str.replace(/<[^>]*>/g, ''); // strip any HTML tags
+      return str.length > max ? str.slice(0, max) + '…' : str;
+    }
+
+    function formatDate(raw) {
+      if (!raw) return 'Unknown date';
+      const s = String(raw);
+      if (s.length === 8) {
+        return `${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}`;
+      }
+      return s;
+    }
+  </script>
+</body>
+</html>
