@@ -230,12 +230,13 @@
       background: var(--surface2);
       border: 1px solid var(--border);
       border-radius: 20px;
-      padding: 0.2rem 0.65rem;
+      padding: 0.2rem 0.4rem 0.2rem 0.65rem;
       font-size: 0.78rem;
       color: var(--text);
       display: flex;
       align-items: center;
       gap: 0.35rem;
+      position: relative;
     }
     .reaction-count {
       font-size: 0.68rem;
@@ -244,6 +245,61 @@
       border-radius: 10px;
       padding: 0 0.35rem;
     }
+    .reaction-info-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      width: 16px;
+      height: 16px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      flex-shrink: 0;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .reaction-info-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    /* ── Side effect popover ── */
+    .se-popover {
+      position: fixed;
+      z-index: 9999;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.1rem;
+      max-width: 280px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+      pointer-events: auto;
+    }
+    .se-popover-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.45rem;
+    }
+    .se-popover-body {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.55;
+    }
+    .se-popover-close {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.6rem;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.85rem;
+      line-height: 1;
+      padding: 0.2rem;
+    }
+    .se-popover-close:hover { color: var(--text); }
     .empty-note {
       font-size: 0.85rem;
       color: var(--text-muted);
@@ -641,11 +697,7 @@
             ${top10.length === 0
               ? `<div class="empty-note">No adverse events on record — absence of data is not evidence of safety.</div>`
               : `<div class="reactions" id="reactions-short-${slug}">
-                  ${top10.map(r => `
-                    <span class="reaction-tag">
-                      ${escHtml(titleCase(r.term))}
-                      <span class="reaction-count">${r.count.toLocaleString()}</span>
-                    </span>`).join('')}
+                  ${top10.map(r => reactionTagHTML(r)).join('')}
                 </div>`
             }
           </div>
@@ -678,11 +730,7 @@
             <!-- Full reactions panel -->
             ${reactions.length > 10 ? `<div class="expand-panel" id="panel-full-${slug}">
               <div class="full-reactions">
-                ${reactions.map(r => `
-                  <span class="reaction-tag">
-                    ${escHtml(titleCase(r.term))}
-                    <span class="reaction-count">${r.count.toLocaleString()}</span>
-                  </span>`).join('')}
+                ${reactions.map(r => reactionTagHTML(r)).join('')}
               </div>
             </div>` : ''}
 
@@ -811,6 +859,138 @@
         return `${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}`;
       }
       return s;
+    }
+
+    // ── Side Effect Info Dictionary (MedDRA plain-English) ──
+    const SE_INFO = {
+      'NAUSEA': 'An uncomfortable urge to vomit. One of the most commonly reported drug side effects, often occurring shortly after taking a medication.',
+      'VOMITING': 'Forceful expulsion of stomach contents through the mouth. May follow nausea or occur on its own.',
+      'DIARRHOEA': 'Loose, watery stools occurring more frequently than usual. Can lead to dehydration if severe or prolonged.',
+      'HEADACHE': 'Pain or pressure felt in any part of the head. Can range from mild discomfort to severe, debilitating pain.',
+      'FATIGUE': 'A persistent feeling of tiredness or weakness that is not relieved by rest. Different from normal tiredness.',
+      'DIZZINESS': 'A sensation of lightheadedness, unsteadiness, or a feeling that the room is spinning (vertigo).',
+      'RASH': 'A change in skin color, texture, or appearance. May be flat or raised, itchy or painless, localized or widespread.',
+      'INSOMNIA': 'Difficulty falling asleep, staying asleep, or getting restful sleep, leading to daytime impairment.',
+      'DYSPNOEA': 'Shortness of breath or difficulty breathing. May occur at rest or only during physical activity.',
+      'PAIN': 'An unpleasant sensory experience. In adverse event reports, this often refers to pain at an unspecified location.',
+      'PRURITUS': 'Itching of the skin. Can be localized (in one area) or generalized (all over the body).',
+      'ABDOMINAL PAIN': 'Pain felt anywhere between the chest and groin. Often called a stomachache.',
+      'ANXIETY': 'Feelings of worry, nervousness, or unease, often about an upcoming event or uncertain outcome.',
+      'DEPRESSION': 'A persistent feeling of sadness, loss of interest, and low energy that affects daily functioning.',
+      'ALOPECIA': 'Hair loss from the scalp or other parts of the body. Can be temporary or permanent depending on cause.',
+      'ARTHRALGIA': 'Pain in one or more joints without inflammation. Different from arthritis, which involves joint swelling.',
+      'MYALGIA': 'Muscle pain or aches. Can affect a specific muscle or be widespread throughout the body.',
+      'PYREXIA': 'Elevated body temperature (fever), typically above 38°C (100.4°F). A common immune response.',
+      'OEDEMA': 'Swelling caused by excess fluid trapped in body tissues. Often affects the legs, ankles, and feet.',
+      'PERIPHERAL OEDEMA': 'Swelling in the extremities (hands, feet, legs) due to fluid buildup.',
+      'HYPERTENSION': 'High blood pressure — a consistently elevated force of blood against artery walls.',
+      'HYPOTENSION': 'Abnormally low blood pressure, which can cause dizziness, fainting, or shock.',
+      'PALPITATIONS': 'Feelings of a fast, fluttering, or pounding heartbeat. Usually brief and not dangerous.',
+      'TACHYCARDIA': 'A heart rate over 100 beats per minute. Can be a normal response to stress or a sign of a problem.',
+      'BRADYCARDIA': 'A heart rate under 60 beats per minute. May cause fatigue, dizziness, or fainting.',
+      'CHEST PAIN': 'Pain or discomfort in the chest area. Can range from a sharp stabbing to a dull ache.',
+      'DYSPHAGIA': 'Difficulty swallowing food or liquids. Can be caused by muscle or nerve problems in the throat.',
+      'CONSTIPATION': 'Infrequent bowel movements or difficulty passing stools. Usually fewer than 3 bowel movements per week.',
+      'FLATULENCE': 'Excess gas in the digestive tract, leading to bloating and passing of gas.',
+      'ANOREXIA': 'Loss of appetite or desire to eat, leading to reduced food intake.',
+      'WEIGHT DECREASED': 'Unintentional loss of body weight, not due to diet or exercise.',
+      'WEIGHT INCREASED': 'Unintentional gain in body weight.',
+      'SOMNOLENCE': 'Excessive drowsiness or sleepiness during the day, making it hard to stay awake.',
+      'TREMOR': 'Rhythmic, involuntary muscle contractions causing shaking movements in one or more parts of the body.',
+      'PARAESTHESIA': 'Abnormal sensations such as tingling, burning, numbness, or "pins and needles."',
+      'CONFUSION': 'A state of impaired thinking, memory, or orientation. May come on suddenly or gradually.',
+      'HALLUCINATION': 'Perceiving something (seeing, hearing, feeling) that is not actually present.',
+      'SYNCOPE': 'Temporary loss of consciousness (fainting) caused by insufficient blood flow to the brain.',
+      'CONVULSION': 'Sudden, uncontrolled electrical disturbances in the brain causing shaking or jerking movements (seizure).',
+      'AMNESIA': 'Partial or total loss of memory, either temporary or permanent.',
+      'BLURRED VISION': 'Lack of sharpness in vision, making objects appear out of focus.',
+      'DRY MOUTH': 'A sensation of dryness in the mouth due to reduced saliva production.',
+      'URTICARIA': 'Hives — raised, itchy welts on the skin that appear suddenly, often as an allergic reaction.',
+      'ERYTHEMA': 'Redness of the skin caused by increased blood flow near the surface.',
+      'SWEATING INCREASED': 'Excessive sweating beyond what is needed for temperature regulation.',
+      'FLUSHING': 'Sudden reddening of the face, neck, or chest, often accompanied by warmth.',
+      'BACK PAIN': 'Pain felt in the upper, middle, or lower back. Very common and can range from mild to severe.',
+      'FALLS': 'Unintentional loss of balance resulting in landing on the ground or floor.',
+      'DRUG INEFFECTIVE': 'The medication did not produce the intended therapeutic effect for the patient.',
+      'OFF LABEL USE': 'The drug was used for a purpose, age group, or dose not approved by the FDA.',
+      'MEDICATION ERROR': 'A preventable event that may cause or lead to inappropriate medication use or patient harm.',
+      'OVERDOSE': 'Taking more of a drug than the recommended or safe dose.',
+      'DEATH': 'The patient died. Reported in serious adverse event cases to the FDA.',
+      'HOSPITALISATION': 'The patient required admission to a hospital as a result of the adverse event.',
+      'RENAL FAILURE': 'The kidneys stop working properly and can no longer filter waste from the blood.',
+      'HEPATIC FAILURE': 'The liver loses significant function. A serious and potentially life-threatening condition.',
+      'THROMBOSIS': 'Formation of a blood clot inside a blood vessel, obstructing the flow of blood.',
+      'EMBOLISM': 'A blood clot or other blockage that travels and becomes lodged in a blood vessel.',
+      'ANAPHYLAXIS': 'A severe, life-threatening allergic reaction that requires immediate medical treatment.',
+      'HYPERSENSITIVITY': 'An exaggerated immune response to a substance, ranging from mild to anaphylactic.',
+      'STEVENS-JOHNSON SYNDROME': 'A rare, serious disorder of the skin and mucous membranes, often triggered by medication.',
+      'ANGIOEDEMA': 'Rapid swelling of the deeper layers of skin, often around the eyes and lips. Can affect the throat.',
+      'NEUTROPENIA': 'Low levels of neutrophils (white blood cells), increasing risk of infection.',
+      'ANAEMIA': 'A condition where there are not enough healthy red blood cells to carry adequate oxygen to body tissues.',
+      'THROMBOCYTOPENIA': 'A low platelet count, which can impair the blood\'s ability to clot.',
+      'LEUKOPENIA': 'An abnormally low white blood cell count, reducing the immune system\'s ability to fight infection.',
+      'HYPERGLYCAEMIA': 'Higher-than-normal blood sugar levels. Associated with diabetes and certain medications.',
+      'HYPOGLYCAEMIA': 'Abnormally low blood sugar, which can cause shakiness, confusion, and in severe cases, unconsciousness.',
+      'HYPONATRAEMIA': 'Low sodium levels in the blood. Can cause nausea, headache, confusion, or seizures.',
+      'HYPOKALAEMIA': 'Low potassium levels in the blood. May cause muscle weakness, cramps, or irregular heartbeat.',
+      'INCREASED ALANINE AMINOTRANSFERASE': 'Elevated ALT enzyme — a liver marker that may indicate liver damage or inflammation.',
+      'INCREASED ASPARTATE AMINOTRANSFERASE': 'Elevated AST enzyme — another liver marker indicating possible liver stress or damage.',
+    };
+
+    function getSEInfo(term) {
+      const key = term.toUpperCase().trim();
+      return SE_INFO[key] || null;
+    }
+
+    // ── Popover logic ──
+    let activePopover = null;
+
+    function showSEPopover(btn, term) {
+      closePopover();
+      const info = getSEInfo(term);
+      const pop = document.createElement('div');
+      pop.className = 'se-popover';
+      pop.innerHTML = `
+        <button class="se-popover-close" onclick="closePopover()">✕</button>
+        <div class="se-popover-title">${escHtml(titleCase(term))}</div>
+        <div class="se-popover-body">${info
+          ? escHtml(info)
+          : 'No plain-language description available for this term. It is a medical term from the MedDRA adverse event classification system.'
+        }</div>
+      `;
+      document.body.appendChild(pop);
+      activePopover = pop;
+
+      // Position near button
+      const rect = btn.getBoundingClientRect();
+      const popW = 280;
+      let left = rect.left + window.scrollX;
+      let top = rect.bottom + window.scrollY + 6;
+      // Keep within viewport
+      if (left + popW > window.innerWidth - 12) left = window.innerWidth - popW - 12;
+      if (left < 8) left = 8;
+      pop.style.left = left + 'px';
+      pop.style.top = top + 'px';
+    }
+
+    function closePopover() {
+      if (activePopover) { activePopover.remove(); activePopover = null; }
+    }
+
+    document.addEventListener('click', (e) => {
+      if (activePopover && !activePopover.contains(e.target) && !e.target.classList.contains('reaction-info-btn')) {
+        closePopover();
+      }
+    });
+
+    // ── Helper to build a reaction tag with ? button ──
+    function reactionTagHTML(r) {
+      const term = r.term;
+      return `<span class="reaction-tag">
+        ${escHtml(titleCase(term))}
+        <span class="reaction-count">${r.count.toLocaleString()}</span>
+        <button class="reaction-info-btn" title="What is this?" onclick="event.stopPropagation(); showSEPopover(this, '${escHtml(term.toUpperCase().replace(/'/g, "\\'"))}')">?</button>
+      </span>`;
     }
   </script>
 </body>
