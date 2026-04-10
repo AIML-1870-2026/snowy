@@ -219,16 +219,6 @@
 
     .schema-warning.visible { display: block; }
 
-    .metrics {
-      display: none;
-      font-size: 0.76rem;
-      color: #9ca3af;
-      margin-top: 0.5rem;
-      gap: 1.25rem;
-    }
-
-    .metrics.visible { display: flex; }
-
     .section-label {
       font-size: 0.78rem;
       font-weight: 600;
@@ -254,6 +244,106 @@
     }
 
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Metrics bar */
+    .metrics {
+      display: none;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+    }
+    .metrics.visible { display: flex; }
+    .metric-pill {
+      display: flex;
+      flex-direction: column;
+      background: #f0ede8;
+      border: 1px solid #ddd9d3;
+      border-radius: 3px;
+      padding: 0.4rem 0.75rem;
+      min-width: 100px;
+    }
+    .metric-pill .pill-label {
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .metric-pill .pill-value {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+    .metric-pill .pill-value.green { color: #2d6a4f; }
+
+    /* Model guide dashboard */
+    .guide-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .guide-header .toggle-icon {
+      font-size: 0.8rem;
+      color: #9ca3af;
+      transition: transform 0.2s;
+    }
+    .guide-header.open .toggle-icon { transform: rotate(180deg); }
+    .guide-body { display: none; }
+    .guide-body.open { display: block; }
+
+    .guide-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      margin-top: 0.75rem;
+    }
+    .guide-table th {
+      text-align: left;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.4rem 0.6rem;
+      border-bottom: 1px solid #ddd9d3;
+    }
+    .guide-table td {
+      padding: 0.5rem 0.6rem;
+      border-bottom: 1px solid #f0ede8;
+      color: #374151;
+      vertical-align: top;
+    }
+    .guide-table tr:last-child td { border-bottom: none; }
+    .guide-table tr.active-model td { background: #f0faf5; }
+
+    .speed-bar {
+      display: flex;
+      gap: 2px;
+      align-items: center;
+    }
+    .speed-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ddd9d3;
+    }
+    .speed-dot.filled { background: #2d6a4f; }
+
+    .cost-tag {
+      font-weight: 600;
+      font-size: 0.78rem;
+    }
+    .cost-low { color: #2d6a4f; }
+    .cost-mid { color: #d97706; }
+    .cost-high { color: #dc2626; }
+
+    .guide-note {
+      font-size: 0.73rem;
+      color: #9ca3af;
+      margin-top: 0.6rem;
+    }
   </style>
 </head>
 <body>
@@ -344,14 +434,91 @@
     <button class="send-btn" id="send-btn" onclick="sendRequest()">Send</button>
   </div>
 
+  <!-- Model Guide Dashboard -->
+  <div class="card">
+    <div class="guide-header" id="guide-toggle" onclick="toggleGuide()">
+      <span class="section-label" style="margin-bottom:0">Model Guide — Cost &amp; Speed</span>
+      <span class="toggle-icon">&#9660;</span>
+    </div>
+    <div class="guide-body" id="guide-body">
+      <table class="guide-table" id="guide-table">
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>Speed</th>
+            <th>Cost / 1K tokens</th>
+            <th>Best for</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr data-model="gpt-4o">
+            <td><strong>gpt-4o</strong></td>
+            <td><div class="speed-bar"><span class="speed-dot filled"></span><span class="speed-dot filled"></span><span class="speed-dot filled"></span></div></td>
+            <td><span class="cost-tag cost-mid">$$</span> ~$0.003 in / $0.010 out</td>
+            <td>Complex reasoning, long tasks</td>
+          </tr>
+          <tr data-model="gpt-4o-mini">
+            <td><strong>gpt-4o-mini</strong></td>
+            <td><div class="speed-bar"><span class="speed-dot filled"></span><span class="speed-dot filled"></span><span class="speed-dot filled"></span></div></td>
+            <td><span class="cost-tag cost-low">$</span> ~$0.0002 in / $0.0006 out</td>
+            <td>Fast, cheap everyday tasks</td>
+          </tr>
+          <tr data-model="gpt-3.5-turbo">
+            <td><strong>gpt-3.5-turbo</strong></td>
+            <td><div class="speed-bar"><span class="speed-dot filled"></span><span class="speed-dot filled"></span><span class="speed-dot filled"></span></div></td>
+            <td><span class="cost-tag cost-low">$</span> ~$0.0005 in / $0.0015 out</td>
+            <td>Simple Q&amp;A, quick drafts</td>
+          </tr>
+          <tr data-model="claude-opus-4-6">
+            <td><strong>claude-opus-4-6</strong></td>
+            <td><div class="speed-bar"><span class="speed-dot filled"></span><span class="speed-dot"></span><span class="speed-dot"></span></div></td>
+            <td><span class="cost-tag cost-high">$$$</span> ~$0.015 in / $0.075 out</td>
+            <td>Deep analysis, nuanced writing</td>
+          </tr>
+          <tr data-model="claude-sonnet-4-6">
+            <td><strong>claude-sonnet-4-6</strong></td>
+            <td><div class="speed-bar"><span class="speed-dot filled"></span><span class="speed-dot filled"></span><span class="speed-dot"></span></div></td>
+            <td><span class="cost-tag cost-mid">$$</span> ~$0.003 in / $0.015 out</td>
+            <td>Balanced performance &amp; cost</td>
+          </tr>
+          <tr data-model="claude-haiku-4-5">
+            <td><strong>claude-haiku-4-5</strong></td>
+            <td><div class="speed-bar"><span class="speed-dot filled"></span><span class="speed-dot filled"></span><span class="speed-dot filled"></span></div></td>
+            <td><span class="cost-tag cost-low">$</span> ~$0.0008 in / $0.004 out</td>
+            <td>High-volume, low-latency tasks</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="guide-note">&#9432; Prices are approximate and may change. See provider pricing pages for current rates. The currently selected model is highlighted.</p>
+    </div>
+  </div>
+
   <!-- Output -->
   <div class="card">
     <div class="section-label">Output</div>
     <div class="output-area" id="output">Response will appear here.</div>
     <div class="schema-warning" id="schema-warning">&#9888; Warning: the response does not fully match the provided schema.</div>
     <div class="metrics" id="metrics">
-      <span id="metric-time"></span>
-      <span id="metric-length"></span>
+      <div class="metric-pill">
+        <span class="pill-label">Response Time</span>
+        <span class="pill-value" id="metric-time">—</span>
+      </div>
+      <div class="metric-pill">
+        <span class="pill-label">Input Tokens</span>
+        <span class="pill-value" id="metric-input-tokens">—</span>
+      </div>
+      <div class="metric-pill">
+        <span class="pill-label">Output Tokens</span>
+        <span class="pill-value" id="metric-output-tokens">—</span>
+      </div>
+      <div class="metric-pill">
+        <span class="pill-label">Est. Cost</span>
+        <span class="pill-value green" id="metric-cost">—</span>
+      </div>
+      <div class="metric-pill">
+        <span class="pill-label">Response Length</span>
+        <span class="pill-value" id="metric-length">—</span>
+      </div>
     </div>
   </div>
 
@@ -361,6 +528,16 @@
   const MODELS = {
     openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-3.5-turbo'],
     anthropic: ['claude-opus-4-6', 'claude-sonnet-4-6', 'claude-haiku-4-5']
+  };
+
+  // Cost per 1K tokens: [input, output]
+  const PRICING = {
+    'gpt-4o':           [0.0025, 0.010],
+    'gpt-4o-mini':      [0.00015, 0.0006],
+    'gpt-3.5-turbo':    [0.0005, 0.0015],
+    'claude-opus-4-6':  [0.015, 0.075],
+    'claude-sonnet-4-6':[0.003, 0.015],
+    'claude-haiku-4-5': [0.0008, 0.004],
   };
 
   let currentMode = 'unstructured';
@@ -375,13 +552,32 @@
       opt.textContent = m;
       modelSel.appendChild(opt);
     });
+    highlightGuideRow(modelSel.value);
   }
+
+  function highlightGuideRow(model) {
+    document.querySelectorAll('#guide-table tbody tr').forEach(tr => {
+      tr.classList.toggle('active-model', tr.dataset.model === model);
+    });
+  }
+
+  document.getElementById('model').addEventListener('change', function () {
+    highlightGuideRow(this.value);
+  });
 
   // Provider change
   document.getElementById('provider').addEventListener('change', function () {
     populateModels(this.value);
     document.getElementById('cors-banner').classList.toggle('visible', this.value === 'anthropic');
   });
+
+  // Guide toggle
+  function toggleGuide() {
+    const header = document.getElementById('guide-toggle');
+    const body = document.getElementById('guide-body');
+    header.classList.toggle('open');
+    body.classList.toggle('open');
+  }
 
   // Mode toggle
   function setMode(mode) {
@@ -449,11 +645,24 @@
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
-  function showMetrics(ms, length) {
-    const m = document.getElementById('metrics');
-    m.classList.add('visible');
-    document.getElementById('metric-time').textContent = `Time: ${(ms / 1000).toFixed(2)}s`;
-    document.getElementById('metric-length').textContent = `Length: ${length} chars`;
+  function showMetrics(ms, length, model, usage) {
+    document.getElementById('metrics').classList.add('visible');
+    document.getElementById('metric-time').textContent = `${(ms / 1000).toFixed(2)}s`;
+    document.getElementById('metric-length').textContent = `${length} chars`;
+
+    const inputTok = usage?.input_tokens ?? usage?.prompt_tokens ?? null;
+    const outputTok = usage?.output_tokens ?? usage?.completion_tokens ?? null;
+
+    document.getElementById('metric-input-tokens').textContent = inputTok !== null ? inputTok.toLocaleString() : 'N/A';
+    document.getElementById('metric-output-tokens').textContent = outputTok !== null ? outputTok.toLocaleString() : 'N/A';
+
+    if (inputTok !== null && outputTok !== null && PRICING[model]) {
+      const [inRate, outRate] = PRICING[model];
+      const cost = (inputTok / 1000) * inRate + (outputTok / 1000) * outRate;
+      document.getElementById('metric-cost').textContent = cost < 0.0001 ? '<$0.0001' : `$${cost.toFixed(4)}`;
+    } else {
+      document.getElementById('metric-cost').textContent = 'N/A';
+    }
   }
 
   function validateSchema(responseText, schemaText) {
@@ -490,17 +699,16 @@
     const startTime = Date.now();
 
     try {
-      let responseText;
+      let responseText, usage;
       if (provider === 'openai') {
-        responseText = await callOpenAI(apiKey, model, prompt, schema);
+        ({ text: responseText, usage } = await callOpenAI(apiKey, model, prompt, schema));
       } else {
-        responseText = await callAnthropic(apiKey, model, prompt, schema);
+        ({ text: responseText, usage } = await callAnthropic(apiKey, model, prompt, schema));
       }
 
       const elapsed = Date.now() - startTime;
 
       if (currentMode === 'structured') {
-        // Try to pretty-print JSON
         try {
           const parsed = JSON.parse(responseText);
           const pretty = JSON.stringify(parsed, null, 2);
@@ -516,7 +724,7 @@
         setOutput(responseText);
       }
 
-      showMetrics(elapsed, responseText.length);
+      showMetrics(elapsed, responseText.length, model, usage);
 
     } catch (err) {
       const msg = friendlyError(err.message || String(err));
@@ -553,7 +761,7 @@
     }
 
     const data = await res.json();
-    return data.choices[0].message.content.trim();
+    return { text: data.choices[0].message.content.trim(), usage: data.usage };
   }
 
   async function callAnthropic(apiKey, model, prompt, schema) {
@@ -591,7 +799,7 @@
     }
 
     const data = await res.json();
-    return data.content[0].text.trim();
+    return { text: data.content[0].text.trim(), usage: data.usage };
   }
 
   function openAIError(status, body) {
