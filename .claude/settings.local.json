@@ -6,7 +6,10 @@
       "Bash(gh repo view:*)",
       "Bash(open:*)",
       "Bash(ls:*)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "WebFetch(domain:www.frontiersof.tech)",
+      "Skill(keybindings-help)",
+      "Skill(keybindings-help:*)"
     ],
     "additionalDirectories": [
       "/Users/melissabarrera-mendoza/Documents/snowy"

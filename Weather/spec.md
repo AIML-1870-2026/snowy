@@ -24,7 +24,7 @@ A static webpage that displays real-time weather information using the OpenWeath
 - HTTPS requests for all API calls
 
 ### User Experience
-- Responsive design 
+
 - Loading states while fetching data
 - Error handling for invalid cities or API failures
 - Input validation for city search

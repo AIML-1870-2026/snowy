@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LLM Switchboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #f8fafc;
+      letter-spacing: -0.5px;
+    }
+
+    h1 span {
+      color: #6366f1;
+    }
+
+    .card {
+      background: #1e2130;
+      border: 1px solid #2d3148;
+      border-radius: 12px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .row {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      flex: 1;
+      min-width: 180px;
+    }
+
+    label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    input, select, textarea {
+      background: #0f1117;
+      border: 1px solid #2d3148;
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-size: 0.92rem;
+      padding: 0.55rem 0.75rem;
+      width: 100%;
+      transition: border-color 0.15s;
+      font-family: inherit;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #6366f1;
+    }
+
+    select option { background: #1e2130; }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+      line-height: 1.5;
+    }
+
+    textarea.schema-area {
+      min-height: 80px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+    }
+
+    .key-input-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .key-input-row input { flex: 1; }
+
+    .file-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.55rem 0.85rem;
+      background: #2d3148;
+      border: 1px solid #3d4268;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      color: #94a3b8;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+
+    .file-label:hover { background: #373d5e; color: #e2e8f0; }
+    #file-input { display: none; }
+
+    .privacy-note {
+      font-size: 0.76rem;
+      color: #64748b;
+    }
+
+    /* Toggle */
+    .mode-toggle {
+      display: flex;
+      background: #0f1117;
+      border: 1px solid #2d3148;
+      border-radius: 8px;
+      padding: 3px;
+      width: fit-content;
+    }
+
+    .mode-toggle button {
+      padding: 0.4rem 1.1rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: transparent;
+      color: #64748b;
+      transition: all 0.15s;
+    }
+
+    .mode-toggle button.active {
+      background: #6366f1;
+      color: #fff;
+    }
+
+    /* Banner */
+    .banner {
+      display: none;
+      background: #2d1e0f;
+      border: 1px solid #92400e;
+      border-radius: 8px;
+      padding: 0.7rem 1rem;
+      font-size: 0.83rem;
+      color: #fbbf24;
+      line-height: 1.5;
+    }
+
+    .banner.visible { display: block; }
+
+    /* Send button */
+    .send-btn {
+      align-self: flex-end;
+      padding: 0.6rem 1.75rem;
+      background: #6366f1;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+    }
+
+    .send-btn:hover { background: #4f46e5; }
+    .send-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* Output */
+    .output-area {
+      background: #0f1117;
+      border: 1px solid #2d3148;
+      border-radius: 8px;
+      padding: 1rem;
+      font-size: 0.9rem;
+      line-height: 1.7;
+      min-height: 120px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: #cbd5e1;
+    }
+
+    .output-area.error { color: #f87171; border-color: #7f1d1d; }
+    .output-area.warning-schema { border-color: #92400e; }
+
+    .output-area pre {
+      font-family: 'Courier New', monospace;
+      font-size: 0.84rem;
+    }
+
+    .schema-warning {
+      display: none;
+      margin-top: 0.5rem;
+      font-size: 0.78rem;
+      color: #fbbf24;
+    }
+
+    .schema-warning.visible { display: block; }
+
+    .metrics {
+      display: none;
+      font-size: 0.76rem;
+      color: #64748b;
+      margin-top: 0.5rem;
+      gap: 1.25rem;
+    }
+
+    .metrics.visible { display: flex; }
+
+    .section-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: -0.25rem;
+    }
+
+    #schema-section { display: none; }
+    #schema-section.visible { display: flex; flex-direction: column; gap: 0.75rem; }
+
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid #fff4;
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <h1>LLM <span>Switchboard</span></h1>
+
+  <!-- Provider + Model + API Key -->
+  <div class="card">
+    <div class="row">
+      <div class="field">
+        <label for="provider">Provider</label>
+        <select id="provider">
+          <option value="openai">OpenAI</option>
+          <option value="anthropic">Anthropic</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="model">Model</label>
+        <select id="model"></select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>API Key</label>
+      <div class="key-input-row">
+        <input type="password" id="api-key" placeholder="Paste your API key here" autocomplete="off" />
+        <label class="file-label" for="file-input">
+          &#128194; Upload .env / .csv
+        </label>
+        <input type="file" id="file-input" accept=".env,.csv,.txt" />
+      </div>
+      <span class="privacy-note">Your key is stored in memory only and never saved or sent anywhere except the selected provider's API.</span>
+    </div>
+
+    <div id="cors-banner" class="banner">
+      &#9888; Anthropic's API blocks direct browser requests (CORS restriction). The request will be attempted, but may fail. A backend server or proxy is required for reliable use.
+    </div>
+  </div>
+
+  <!-- Output Mode -->
+  <div class="card">
+    <div class="field">
+      <label>Output Mode</label>
+      <div class="mode-toggle">
+        <button id="btn-unstructured" class="active" onclick="setMode('unstructured')">Unstructured</button>
+        <button id="btn-structured" onclick="setMode('structured')">Structured</button>
+      </div>
+    </div>
+
+    <!-- Prompt -->
+    <div class="field">
+      <label for="example-prompts">Example Prompts</label>
+      <select id="example-prompts">
+        <option value="">— Select a prompt —</option>
+        <option value="Summarize the following text in three bullet points: [paste text here]">Summarize in bullet points</option>
+        <option value="List five creative names for a product that does [describe product]">Creative product names</option>
+        <option value="Explain this concept to a beginner: [concept]">Explain to a beginner</option>
+        <option value="Write a short poem about [topic]">Short poem</option>
+        <option value="What are the pros and cons of [topic]?">Pros and cons</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="prompt">Prompt</label>
+      <textarea id="prompt" placeholder="Type your prompt here, or select an example above..."></textarea>
+    </div>
+
+    <!-- Schema (structured only) -->
+    <div id="schema-section">
+      <div class="section-label">Schema</div>
+      <div class="field">
+        <label for="schema-templates">Schema Templates</label>
+        <select id="schema-templates">
+          <option value="">— Select a template —</option>
+          <option value='{ "sentiment": "string", "confidence": "number", "summary": "string" }'>Sentiment Analysis</option>
+          <option value='{ "title": "string", "author": "string", "genre": "string", "year": "number" }'>Book Info</option>
+          <option value='{ "tasks": ["string"], "priority": "string", "deadline": "string" }'>Task List</option>
+          <option value='{ "rating": "number", "pros": ["string"], "cons": ["string"], "verdict": "string" }'>Product Review</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="schema">JSON Schema</label>
+        <textarea id="schema" class="schema-area" placeholder='e.g. { "name": "string", "score": "number" }'></textarea>
+      </div>
+    </div>
+
+    <button class="send-btn" id="send-btn" onclick="sendRequest()">Send</button>
+  </div>
+
+  <!-- Output -->
+  <div class="card">
+    <div class="section-label">Output</div>
+    <div class="output-area" id="output">Response will appear here.</div>
+    <div class="schema-warning" id="schema-warning">&#9888; Warning: the response does not fully match the provided schema.</div>
+    <div class="metrics" id="metrics">
+      <span id="metric-time"></span>
+      <span id="metric-length"></span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const MODELS = {
+    openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-3.5-turbo'],
+    anthropic: ['claude-opus-4-6', 'claude-sonnet-4-6', 'claude-haiku-4-5']
+  };
+
+  let currentMode = 'unstructured';
+
+  // Populate model dropdown
+  function populateModels(provider) {
+    const modelSel = document.getElementById('model');
+    modelSel.innerHTML = '';
+    MODELS[provider].forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = m;
+      modelSel.appendChild(opt);
+    });
+  }
+
+  // Provider change
+  document.getElementById('provider').addEventListener('change', function () {
+    populateModels(this.value);
+    document.getElementById('cors-banner').classList.toggle('visible', this.value === 'anthropic');
+  });
+
+  // Mode toggle
+  function setMode(mode) {
+    currentMode = mode;
+    document.getElementById('btn-unstructured').classList.toggle('active', mode === 'unstructured');
+    document.getElementById('btn-structured').classList.toggle('active', mode === 'structured');
+    document.getElementById('schema-section').classList.toggle('visible', mode === 'structured');
+  }
+
+  // Example prompt selection
+  document.getElementById('example-prompts').addEventListener('change', function () {
+    if (this.value) {
+      document.getElementById('prompt').value = this.value;
+      this.value = '';
+    }
+  });
+
+  // Schema template selection
+  document.getElementById('schema-templates').addEventListener('change', function () {
+    if (this.value) {
+      document.getElementById('schema').value = this.value;
+      this.value = '';
+    }
+  });
+
+  // File upload — parse .env or .csv for API key
+  document.getElementById('file-input').addEventListener('change', function () {
+    const file = this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      const text = e.target.result;
+      // Try to find key=value pattern
+      const match = text.match(/(?:OPENAI_API_KEY|ANTHROPIC_API_KEY|API_KEY)\s*=\s*["']?([^\s"'\r\n]+)["']?/i)
+        || text.match(/["']?(sk-[A-Za-z0-9\-_]+)["']?/);
+      if (match) {
+        document.getElementById('api-key').value = match[1];
+      } else {
+        // Try CSV: grab first non-empty cell value
+        const cells = text.split(/[\r\n,]+/).map(c => c.trim()).filter(Boolean);
+        const keyCell = cells.find(c => c.startsWith('sk-') || c.length > 30);
+        if (keyCell) {
+          document.getElementById('api-key').value = keyCell;
+        } else {
+          setOutput('Could not find an API key in the uploaded file. Expected a line like: OPENAI_API_KEY=sk-...', true);
+        }
+      }
+    };
+    reader.readAsText(file);
+    this.value = '';
+  });
+
+  // Output helpers
+  function setOutput(text, isError = false, isJson = false) {
+    const el = document.getElementById('output');
+    el.className = 'output-area' + (isError ? ' error' : '');
+    if (isJson) {
+      el.innerHTML = '<pre>' + escapeHtml(text) + '</pre>';
+    } else {
+      el.textContent = text;
+    }
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function showMetrics(ms, length) {
+    const m = document.getElementById('metrics');
+    m.classList.add('visible');
+    document.getElementById('metric-time').textContent = `Time: ${(ms / 1000).toFixed(2)}s`;
+    document.getElementById('metric-length').textContent = `Length: ${length} chars`;
+  }
+
+  function validateSchema(responseText, schemaText) {
+    try {
+      const schema = JSON.parse(schemaText);
+      const response = JSON.parse(responseText);
+      const schemaKeys = Object.keys(schema);
+      const missing = schemaKeys.filter(k => !(k in response));
+      return missing.length === 0;
+    } catch {
+      return true; // can't validate, don't warn
+    }
+  }
+
+  // Main send
+  async function sendRequest() {
+    const provider = document.getElementById('provider').value;
+    const model = document.getElementById('model').value;
+    const apiKey = document.getElementById('api-key').value.trim();
+    const prompt = document.getElementById('prompt').value.trim();
+    const schema = document.getElementById('schema').value.trim();
+
+    if (!apiKey) { setOutput('Please enter or upload your API key.', true); return; }
+    if (!prompt) { setOutput('Please enter a prompt.', true); return; }
+    if (currentMode === 'structured' && !schema) { setOutput('Please enter a JSON schema or select a template.', true); return; }
+
+    const btn = document.getElementById('send-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Sending...';
+    document.getElementById('schema-warning').classList.remove('visible');
+    document.getElementById('metrics').classList.remove('visible');
+    setOutput('Waiting for response...');
+
+    const startTime = Date.now();
+
+    try {
+      let responseText;
+      if (provider === 'openai') {
+        responseText = await callOpenAI(apiKey, model, prompt, schema);
+      } else {
+        responseText = await callAnthropic(apiKey, model, prompt, schema);
+      }
+
+      const elapsed = Date.now() - startTime;
+
+      if (currentMode === 'structured') {
+        // Try to pretty-print JSON
+        try {
+          const parsed = JSON.parse(responseText);
+          const pretty = JSON.stringify(parsed, null, 2);
+          setOutput(pretty, false, true);
+          if (!validateSchema(responseText, schema)) {
+            document.getElementById('schema-warning').classList.add('visible');
+          }
+        } catch {
+          setOutput(responseText, false, false);
+          document.getElementById('schema-warning').classList.add('visible');
+        }
+      } else {
+        setOutput(responseText);
+      }
+
+      showMetrics(elapsed, responseText.length);
+
+    } catch (err) {
+      const msg = friendlyError(err.message || String(err));
+      setOutput(msg, true);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Send';
+    }
+  }
+
+  async function callOpenAI(apiKey, model, prompt, schema) {
+    const systemMsg = currentMode === 'structured'
+      ? `You must respond ONLY with a valid JSON object that matches this schema: ${schema}. No explanation, no markdown, just the JSON.`
+      : 'You are a helpful assistant.';
+
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: 'system', content: systemMsg },
+          { role: 'user', content: prompt }
+        ]
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(openAIError(res.status, err));
+    }
+
+    const data = await res.json();
+    return data.choices[0].message.content.trim();
+  }
+
+  async function callAnthropic(apiKey, model, prompt, schema) {
+    const systemMsg = currentMode === 'structured'
+      ? `You must respond ONLY with a valid JSON object that matches this schema: ${schema}. No explanation, no markdown, just the JSON.`
+      : 'You are a helpful assistant.';
+
+    let res;
+    try {
+      res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 1024,
+          system: systemMsg,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+    } catch (e) {
+      if (e instanceof TypeError) {
+        throw new Error('CORS_BLOCKED');
+      }
+      throw e;
+    }
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(anthropicError(res.status, err));
+    }
+
+    const data = await res.json();
+    return data.content[0].text.trim();
+  }
+
+  function openAIError(status, body) {
+    if (status === 401) return 'Authentication failed. Please check your OpenAI API key.';
+    if (status === 429) return 'Rate limit reached. Wait a moment before trying again.';
+    if (status === 408) return 'The request timed out. Try again.';
+    return body?.error?.message || `OpenAI error (${status}).`;
+  }
+
+  function anthropicError(status, body) {
+    if (status === 401) return 'Authentication failed. Please check your Anthropic API key.';
+    if (status === 429) return 'Rate limit reached. Wait a moment before trying again.';
+    return body?.error?.message || `Anthropic error (${status}).`;
+  }
+
+  function friendlyError(msg) {
+    if (msg === 'CORS_BLOCKED' || msg.toLowerCase().includes('cors') || msg.toLowerCase().includes('failed to fetch')) {
+      return 'Request blocked: Anthropic does not allow direct browser API calls. This is a known CORS limitation, not an issue with your key or prompt.';
+    }
+    if (msg.toLowerCase().includes('timeout')) {
+      return 'The request timed out. The model may be busy — try again.';
+    }
+    return msg;
+  }
+
+  // Init
+  populateModels('openai');
+</script>
+</body>
+</html>
