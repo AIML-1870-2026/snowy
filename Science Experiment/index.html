@@ -275,6 +275,17 @@
           <option value="gpt-3.5-turbo">gpt-3.5-turbo (budget)</option>
         </select>
       </div>
+      <div class="field">
+        <label for="extra-materials">Extra Materials AI Can Add</label>
+        <select id="extra-materials">
+          <option value="0">0 — use my supplies only</option>
+          <option value="1">1 extra material</option>
+          <option value="2">2 extra materials</option>
+          <option value="3">3 extra materials</option>
+          <option value="4">4 extra materials</option>
+          <option value="5">5 extra materials</option>
+        </select>
+      </div>
     </div>
 
     <div class="field">
@@ -377,6 +388,7 @@
     const grade = document.getElementById('grade-level').value;
     const supplies = document.getElementById('supplies').value.trim();
     const model = document.getElementById('model').value;
+    const extraMaterials = parseInt(document.getElementById('extra-materials').value, 10);
 
     if (!apiKey) { setOutput('Please enter or upload your OpenAI API key.', true); return; }
     if (!supplies) { setOutput('Please list the supplies you have available.', true); return; }
@@ -387,7 +399,11 @@
     document.getElementById('metrics').classList.remove('visible');
     setOutput('<em style="color:#9ca3af">Generating your experiment...</em>');
 
-    const systemPrompt = `You are a creative science teacher. When given a grade level and a list of available supplies, generate a single, engaging, safe science experiment appropriate for that grade level using only those supplies (or a subset of them). Respond naturally using markdown: use ## for the experiment title, ### for section headings, **bold** for emphasis, and bullet or numbered lists for materials and steps.`;
+    const materialsRule = extraMaterials === 0
+      ? `You must use ONLY the supplies the user listed — do not introduce any additional materials.`
+      : `You may introduce up to ${extraMaterials} additional material${extraMaterials > 1 ? 's' : ''} beyond what the user listed. Clearly mark any added materials with "(added)" next to them in the materials list.`;
+
+    const systemPrompt = `You are a creative science teacher. When given a grade level and a list of available supplies, generate a single, engaging, safe science experiment appropriate for that grade level. Respond naturally using markdown: use ## for the experiment title, ### for section headings, **bold** for emphasis, and bullet or numbered lists for materials and steps. ${materialsRule}`;
 
     const userPrompt = `Grade level: ${grade}\nAvailable supplies: ${supplies}\n\nGenerate one science experiment.`;
 
