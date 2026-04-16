@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Science Experiment Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'IBM Plex Sans', system-ui, sans-serif;
+      background: #f5f3ef;
+      color: #2d2d2d;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #1a1a1a;
+      letter-spacing: -0.5px;
+    }
+
+    h1 span { color: #2d6a4f; }
+
+    .card {
+      background: #ffffff;
+      border: 1px solid #ddd9d3;
+      border-radius: 4px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+
+    .row {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      flex: 1;
+      min-width: 180px;
+    }
+
+    label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    input, select, textarea {
+      background: #faf9f7;
+      border: 1px solid #ddd9d3;
+      border-radius: 3px;
+      color: #1a1a1a;
+      font-size: 0.92rem;
+      padding: 0.55rem 0.75rem;
+      width: 100%;
+      transition: border-color 0.15s;
+      font-family: inherit;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #2d6a4f;
+    }
+
+    select option { background: #ffffff; }
+
+    textarea {
+      resize: vertical;
+      min-height: 90px;
+      line-height: 1.5;
+    }
+
+    .key-input-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .key-input-row input { flex: 1; }
+
+    .file-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.55rem 0.85rem;
+      background: #f0ede8;
+      border: 1px solid #ddd9d3;
+      border-radius: 3px;
+      font-size: 0.82rem;
+      color: #6b7280;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+
+    .file-label:hover { background: #e5e0d8; color: #2d2d2d; }
+    #file-input { display: none; }
+
+    .privacy-note {
+      font-size: 0.76rem;
+      color: #9ca3af;
+    }
+
+    .cors-note {
+      background: #fffbeb;
+      border: 1px solid #f59e0b;
+      border-radius: 3px;
+      padding: 0.7rem 1rem;
+      font-size: 0.83rem;
+      color: #92400e;
+      line-height: 1.5;
+    }
+
+    .generate-btn {
+      align-self: flex-end;
+      padding: 0.6rem 1.75rem;
+      background: #2d6a4f;
+      color: #fff;
+      border: none;
+      border-radius: 3px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+    }
+
+    .generate-btn:hover { background: #1b4332; }
+    .generate-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid #ffffff66;
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .section-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .output-area {
+      background: #faf9f7;
+      border: 1px solid #ddd9d3;
+      border-radius: 3px;
+      padding: 1.25rem;
+      font-size: 0.92rem;
+      line-height: 1.75;
+      min-height: 140px;
+      color: #374151;
+    }
+
+    .output-area.error { color: #dc2626; border-color: #fca5a5; background: #fff5f5; }
+    .output-area.empty { color: #9ca3af; font-style: italic; }
+
+    /* Rendered HTML experiment output */
+    .output-area h2, .output-area h3 {
+      color: #1a1a1a;
+      font-weight: 700;
+      margin: 0.75rem 0 0.4rem;
+    }
+    .output-area h2 { font-size: 1.1rem; }
+    .output-area h3 { font-size: 0.97rem; color: #2d6a4f; }
+    .output-area p { margin-bottom: 0.5rem; }
+    .output-area ul, .output-area ol {
+      padding-left: 1.4rem;
+      margin-bottom: 0.5rem;
+    }
+    .output-area li { margin-bottom: 0.25rem; }
+    .output-area strong { color: #1a1a1a; }
+
+    .metrics {
+      display: none;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 0.25rem;
+    }
+    .metrics.visible { display: flex; }
+
+    .metric-pill {
+      display: flex;
+      flex-direction: column;
+      background: #f0ede8;
+      border: 1px solid #ddd9d3;
+      border-radius: 3px;
+      padding: 0.4rem 0.75rem;
+      min-width: 100px;
+    }
+    .metric-pill .pill-label {
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .metric-pill .pill-value {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+    .metric-pill .pill-value.green { color: #2d6a4f; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <h1>Science Experiment <span>Generator</span></h1>
+
+  <!-- API Key -->
+  <div class="card">
+    <div class="field">
+      <label>OpenAI API Key</label>
+      <div class="key-input-row">
+        <input type="password" id="api-key" placeholder="Paste your API key here" autocomplete="off" />
+        <label class="file-label" for="file-input">
+          &#128194; Upload .env
+        </label>
+        <input type="file" id="file-input" accept=".env,.csv,.txt" />
+      </div>
+      <span class="privacy-note">Your key is stored in memory only and never saved or sent anywhere except the OpenAI API.</span>
+    </div>
+    <div class="cors-note">
+      &#128161; <strong>Why OpenAI only?</strong> In the LLM Switchboard, Anthropic's API blocked direct browser requests due to CORS restrictions. OpenAI allows browser-to-API calls without a backend server, making it the right choice for a static, client-side app like this one.
+    </div>
+  </div>
+
+  <!-- Inputs -->
+  <div class="card">
+    <div class="row">
+      <div class="field">
+        <label for="grade-level">Grade Level</label>
+        <select id="grade-level">
+          <option value="K-2">K–2 (Ages 5–8)</option>
+          <option value="3-5">3–5 (Ages 8–11)</option>
+          <option value="6-8">6–8 (Ages 11–14)</option>
+          <option value="9-12">9–12 (Ages 14–18)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="model">Model</label>
+        <select id="model">
+          <option value="gpt-4o-mini">gpt-4o-mini (fast &amp; cheap)</option>
+          <option value="gpt-4o">gpt-4o (more detailed)</option>
+          <option value="gpt-3.5-turbo">gpt-3.5-turbo (budget)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="supplies">Available Supplies</label>
+      <textarea id="supplies" placeholder="List the materials you have on hand, e.g.: baking soda, vinegar, food coloring, plastic cups, balloons, string, paper towels..."></textarea>
+    </div>
+
+    <button class="generate-btn" id="generate-btn" onclick="generateExperiment()">Generate Experiment</button>
+  </div>
+
+  <!-- Output -->
+  <div class="card">
+    <div class="section-label">Experiment</div>
+    <div class="output-area empty" id="output">Your experiment will appear here.</div>
+    <div class="metrics" id="metrics">
+      <div class="metric-pill">
+        <span class="pill-label">Response Time</span>
+        <span class="pill-value" id="metric-time">—</span>
+      </div>
+      <div class="metric-pill">
+        <span class="pill-label">Input Tokens</span>
+        <span class="pill-value" id="metric-input-tokens">—</span>
+      </div>
+      <div class="metric-pill">
+        <span class="pill-label">Output Tokens</span>
+        <span class="pill-value" id="metric-output-tokens">—</span>
+      </div>
+      <div class="metric-pill">
+        <span class="pill-label">Est. Cost</span>
+        <span class="pill-value green" id="metric-cost">—</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const PRICING = {
+    'gpt-4o':        [0.0025, 0.010],
+    'gpt-4o-mini':   [0.00015, 0.0006],
+    'gpt-3.5-turbo': [0.0005, 0.0015],
+  };
+
+  // File upload — parse .env or .csv for API key
+  document.getElementById('file-input').addEventListener('change', function () {
+    const file = this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      const text = e.target.result;
+      const match = text.match(/(?:OPENAI_API_KEY|API_KEY)\s*=\s*["']?([^\s"'\r\n]+)["']?/i)
+        || text.match(/["']?(sk-[A-Za-z0-9\-_]+)["']?/);
+      if (match) {
+        document.getElementById('api-key').value = match[1];
+      } else {
+        const cells = text.split(/[\r\n,]+/).map(c => c.trim()).filter(Boolean);
+        const keyCell = cells.find(c => c.startsWith('sk-') || c.length > 30);
+        if (keyCell) {
+          document.getElementById('api-key').value = keyCell;
+        } else {
+          setOutput('Could not find an API key in the uploaded file. Expected a line like: OPENAI_API_KEY=sk-...', true);
+        }
+      }
+    };
+    reader.readAsText(file);
+    this.value = '';
+  });
+
+  function setOutput(html, isError = false) {
+    const el = document.getElementById('output');
+    el.className = 'output-area' + (isError ? ' error' : '');
+    if (isError) {
+      el.textContent = html;
+    } else {
+      el.innerHTML = html;
+    }
+  }
+
+  function showMetrics(ms, model, usage) {
+    document.getElementById('metrics').classList.add('visible');
+    document.getElementById('metric-time').textContent = `${(ms / 1000).toFixed(2)}s`;
+
+    const inputTok = usage?.prompt_tokens ?? null;
+    const outputTok = usage?.completion_tokens ?? null;
+
+    document.getElementById('metric-input-tokens').textContent = inputTok !== null ? inputTok.toLocaleString() : 'N/A';
+    document.getElementById('metric-output-tokens').textContent = outputTok !== null ? outputTok.toLocaleString() : 'N/A';
+
+    if (inputTok !== null && outputTok !== null && PRICING[model]) {
+      const [inRate, outRate] = PRICING[model];
+      const cost = (inputTok / 1000) * inRate + (outputTok / 1000) * outRate;
+      document.getElementById('metric-cost').textContent = cost < 0.0001 ? '<$0.0001' : `$${cost.toFixed(4)}`;
+    } else {
+      document.getElementById('metric-cost').textContent = 'N/A';
+    }
+  }
+
+  async function generateExperiment() {
+    const apiKey = document.getElementById('api-key').value.trim();
+    const grade = document.getElementById('grade-level').value;
+    const supplies = document.getElementById('supplies').value.trim();
+    const model = document.getElementById('model').value;
+
+    if (!apiKey) { setOutput('Please enter or upload your OpenAI API key.', true); return; }
+    if (!supplies) { setOutput('Please list the supplies you have available.', true); return; }
+
+    const btn = document.getElementById('generate-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Generating...';
+    document.getElementById('metrics').classList.remove('visible');
+    setOutput('<em style="color:#9ca3af">Generating your experiment...</em>');
+
+    const systemPrompt = `You are a creative science teacher. When given a grade level and a list of available supplies, generate a single, engaging, safe science experiment appropriate for that grade level using only those supplies (or a subset of them). Respond naturally using markdown: use ## for the experiment title, ### for section headings, **bold** for emphasis, and bullet or numbered lists for materials and steps.`;
+
+    const userPrompt = `Grade level: ${grade}\nAvailable supplies: ${supplies}\n\nGenerate one science experiment.`;
+
+    const startTime = Date.now();
+
+    try {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ]
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(openAIError(res.status, err));
+      }
+
+      const data = await res.json();
+      const elapsed = Date.now() - startTime;
+      const markdown = data.choices[0].message.content.trim();
+
+      setOutput(markdownToHtml(markdown));
+      showMetrics(elapsed, model, data.usage);
+
+    } catch (err) {
+      const msg = err.message || String(err);
+      if (msg.toLowerCase().includes('failed to fetch') || msg.toLowerCase().includes('cors')) {
+        setOutput('Request failed. Check your internet connection and try again.', true);
+      } else {
+        setOutput(msg, true);
+      }
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Generate Experiment';
+    }
+  }
+
+  function markdownToHtml(md) {
+    const lines = md.split('\n');
+    let html = '';
+    let inUl = false;
+    let inOl = false;
+
+    function closeLists() {
+      if (inUl) { html += '</ul>'; inUl = false; }
+      if (inOl) { html += '</ol>'; inOl = false; }
+    }
+
+    function inlineFormat(text) {
+      return text
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>');
+    }
+
+    for (const raw of lines) {
+      const line = raw.trimEnd();
+
+      if (/^### (.+)/.test(line)) {
+        closeLists();
+        html += `<h3>${inlineFormat(line.replace(/^### /, ''))}</h3>`;
+      } else if (/^## (.+)/.test(line)) {
+        closeLists();
+        html += `<h2>${inlineFormat(line.replace(/^## /, ''))}</h2>`;
+      } else if (/^# (.+)/.test(line)) {
+        closeLists();
+        html += `<h2>${inlineFormat(line.replace(/^# /, ''))}</h2>`;
+      } else if (/^\d+\. (.+)/.test(line)) {
+        if (inUl) { html += '</ul>'; inUl = false; }
+        if (!inOl) { html += '<ol>'; inOl = true; }
+        html += `<li>${inlineFormat(line.replace(/^\d+\. /, ''))}</li>`;
+      } else if (/^[-*] (.+)/.test(line)) {
+        if (inOl) { html += '</ol>'; inOl = false; }
+        if (!inUl) { html += '<ul>'; inUl = true; }
+        html += `<li>${inlineFormat(line.replace(/^[-*] /, ''))}</li>`;
+      } else if (line.trim() === '') {
+        closeLists();
+      } else {
+        closeLists();
+        html += `<p>${inlineFormat(line)}</p>`;
+      }
+    }
+
+    closeLists();
+    return html;
+  }
+
+  function openAIError(status, body) {
+    if (status === 401) return 'Authentication failed. Please check your OpenAI API key.';
+    if (status === 429) return 'Rate limit reached. Wait a moment before trying again.';
+    if (status === 408) return 'The request timed out. Try again.';
+    return body?.error?.message || `OpenAI error (${status}).`;
+  }
+</script>
+</body>
+</html>
