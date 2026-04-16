@@ -171,33 +171,42 @@
     }
 
     .output-area {
-      background: #faf9f7;
-      border: 1px solid #ddd9d3;
+      background-color: #fffef5;
+      background-image: repeating-linear-gradient(
+        to bottom,
+        transparent,
+        transparent 27px,
+        #c8dff0 27px,
+        #c8dff0 28px
+      );
+      border: 1px solid #b0b8a0;
+      border-left: 4px solid #e07070;
       border-radius: 3px;
-      padding: 1.25rem;
-      font-size: 0.92rem;
-      line-height: 1.75;
-      min-height: 140px;
-      color: #374151;
+      padding: 1.1rem 1.25rem 1.1rem 1.75rem;
+      font-size: 0.93rem;
+      line-height: 28px;
+      min-height: 168px;
+      color: #2a2a2a;
+      font-family: 'IBM Plex Sans', system-ui, sans-serif;
     }
 
-    .output-area.error { color: #dc2626; border-color: #fca5a5; background: #fff5f5; }
+    .output-area.error { color: #dc2626; border-color: #fca5a5; background: #fff5f5; background-image: none; }
     .output-area.empty { color: #9ca3af; font-style: italic; }
 
     /* Rendered HTML experiment output */
     .output-area h2, .output-area h3 {
-      color: #1a1a1a;
       font-weight: 700;
-      margin: 0.75rem 0 0.4rem;
+      margin: 0.6rem 0 0.2rem;
+      line-height: 28px;
     }
-    .output-area h2 { font-size: 1.1rem; }
+    .output-area h2 { font-size: 1.1rem; color: #1a1a1a; }
     .output-area h3 { font-size: 0.97rem; color: #2d6a4f; }
-    .output-area p { margin-bottom: 0.5rem; }
+    .output-area p { margin-bottom: 0; }
     .output-area ul, .output-area ol {
       padding-left: 1.4rem;
-      margin-bottom: 0.5rem;
+      margin-bottom: 0;
     }
-    .output-area li { margin-bottom: 0.25rem; }
+    .output-area li { margin-bottom: 0; }
     .output-area strong { color: #1a1a1a; }
 
     .metrics {
@@ -293,7 +302,7 @@
       <textarea id="supplies" placeholder="List the materials you have on hand, e.g.: baking soda, vinegar, food coloring, plastic cups, balloons, string, paper towels..."></textarea>
     </div>
 
-    <button class="generate-btn" id="generate-btn" onclick="generateExperiment()">Generate Experiment</button>
+    <button class="generate-btn" id="generate-btn" onclick="generateExperiment()">Run Experiment</button>
   </div>
 
   <!-- Output -->
@@ -446,7 +455,7 @@
       }
     } finally {
       btn.disabled = false;
-      btn.textContent = 'Generate Experiment';
+      btn.textContent = 'Run Experiment';
     }
   }
 
