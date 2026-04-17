@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Blackjack Agent</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'IBM Plex Sans', system-ui, sans-serif;
+      background: #f5f3ef;
+      color: #2d2d2d;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #1a1a1a;
+      letter-spacing: -0.5px;
+    }
+
+    h1 span { color: #2d6a4f; }
+
+    .card {
+      background: #ffffff;
+      border: 1px solid #ddd9d3;
+      border-radius: 4px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+
+    label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    input, select {
+      background: #faf9f7;
+      border: 1px solid #ddd9d3;
+      border-radius: 3px;
+      color: #1a1a1a;
+      font-size: 0.92rem;
+      padding: 0.55rem 0.75rem;
+      width: 100%;
+      font-family: inherit;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: #2d6a4f;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .row {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .row .field { flex: 1; min-width: 160px; }
+
+    .key-input-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .key-input-row input { flex: 1; }
+
+    .file-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.55rem 0.85rem;
+      background: #f0ede8;
+      border: 1px solid #ddd9d3;
+      border-radius: 3px;
+      font-size: 0.82rem;
+      color: #6b7280;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+
+    .file-label:hover { background: #e5e0d8; color: #2d2d2d; }
+    #file-input { display: none; }
+
+    .privacy-note {
+      font-size: 0.76rem;
+      color: #9ca3af;
+    }
+
+    .section-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Mode toggle (explainability) */
+    .mode-toggle {
+      display: flex;
+      background: #f0ede8;
+      border: 1px solid #ddd9d3;
+      border-radius: 3px;
+      padding: 3px;
+      width: fit-content;
+    }
+
+    .mode-toggle button {
+      padding: 0.35rem 1rem;
+      border: none;
+      border-radius: 2px;
+      font-size: 0.83rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: transparent;
+      color: #9ca3af;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+
+    .mode-toggle button.active {
+      background: #2d6a4f;
+      color: #fff;
+    }
+
+    /* Game table */
+    .table-area {
+      background: #1b4332;
+      border-radius: 4px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .hand-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #74c69d;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.4rem;
+    }
+
+    .cards {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      min-height: 80px;
+      align-items: center;
+    }
+
+    .playing-card {
+      width: 52px;
+      height: 76px;
+      background: #fff;
+      border-radius: 5px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      font-weight: 700;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      user-select: none;
+    }
+
+    .playing-card.red { color: #dc2626; }
+    .playing-card.black { color: #1a1a1a; }
+    .playing-card.face-down { background: #2d6a4f; }
+
+    .playing-card .suit {
+      font-size: 0.75rem;
+      line-height: 1;
+    }
+
+    .score-badge {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #d8f3dc;
+      margin-top: 0.35rem;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #2d6a4f;
+    }
+
+    /* Buttons */
+    .btn-row {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 0.6rem 1.5rem;
+      border: none;
+      border-radius: 3px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+      font-family: inherit;
+    }
+
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-primary { background: #2d6a4f; color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #1b4332; }
+
+    .btn-secondary { background: #f0ede8; color: #2d2d2d; border: 1px solid #ddd9d3; }
+    .btn-secondary:hover:not(:disabled) { background: #e5e0d8; }
+
+    .btn-ai { background: #1e3a5f; color: #fff; }
+    .btn-ai:hover:not(:disabled) { background: #162d4a; }
+
+    /* Status / result */
+    .status-bar {
+      padding: 0.6rem 1rem;
+      border-radius: 3px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-align: center;
+      display: none;
+    }
+
+    .status-bar.visible { display: block; }
+    .status-bar.win  { background: #d8f3dc; color: #1b4332; border: 1px solid #74c69d; }
+    .status-bar.lose { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+    .status-bar.push { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
+
+    /* AI recommendation */
+    .ai-box {
+      background: #faf9f7;
+      border: 1px solid #ddd9d3;
+      border-radius: 3px;
+      padding: 0.9rem 1rem;
+      font-size: 0.88rem;
+      line-height: 1.6;
+      color: #374151;
+      min-height: 60px;
+      display: none;
+    }
+
+    .ai-box.visible { display: block; }
+
+    .action-tag {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 0.15rem 0.5rem;
+      border-radius: 2px;
+      margin-right: 0.5rem;
+    }
+
+    .action-tag.hit   { background: #fef9c3; color: #854d0e; }
+    .action-tag.stand { background: #d8f3dc; color: #1b4332; }
+
+    .spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid #9ca3af44;
+      border-top-color: #6b7280;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Stats pills */
+    .stats-row {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .stat-pill {
+      display: flex;
+      flex-direction: column;
+      background: #f0ede8;
+      border: 1px solid #ddd9d3;
+      border-radius: 3px;
+      padding: 0.35rem 0.75rem;
+      min-width: 80px;
+    }
+
+    .stat-pill .pill-label {
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .stat-pill .pill-value {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+
+    .pill-value.green { color: #2d6a4f; }
+    .pill-value.red   { color: #dc2626; }
+    .pill-value.blue  { color: #1e3a5f; }
+
+    /* Collapsible guide header */
+    .guide-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .guide-header .toggle-icon {
+      font-size: 0.8rem;
+      color: #9ca3af;
+      transition: transform 0.2s;
+    }
+
+    .guide-header.open .toggle-icon { transform: rotate(180deg); }
+    .guide-body { display: none; }
+    .guide-body.open { display: block; }
+
+    /* Strategy chart */
+    .chart-wrap {
+      overflow-x: auto;
+      margin-top: 0.75rem;
+    }
+
+    .strategy-chart {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.72rem;
+      min-width: 420px;
+    }
+
+    .strategy-chart th {
+      padding: 0.28rem 0.4rem;
+      text-align: center;
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #6b7280;
+      border-bottom: 2px solid #ddd9d3;
+      white-space: nowrap;
+    }
+
+    .strategy-chart th:first-child {
+      text-align: left;
+      color: #374151;
+    }
+
+    .strategy-chart td {
+      padding: 0.28rem 0.4rem;
+      text-align: center;
+      font-weight: 700;
+      border: 1px solid #f0ede8;
+    }
+
+    .strategy-chart td:first-child {
+      text-align: left;
+      font-weight: 600;
+      color: #374151;
+      background: #faf9f7;
+      white-space: nowrap;
+    }
+
+    .strategy-chart td.H { background: #fee2e2; color: #991b1b; }
+    .strategy-chart td.S { background: #d8f3dc; color: #1b4332; }
+    .strategy-chart td.D { background: #fef9c3; color: #854d0e; }
+
+    .strategy-chart td.active-cell {
+      outline: 2px solid #1e3a5f;
+      outline-offset: -2px;
+      position: relative;
+    }
+
+    .chart-legend {
+      display: flex;
+      gap: 1rem;
+      margin-top: 0.6rem;
+      font-size: 0.73rem;
+      color: #6b7280;
+      flex-wrap: wrap;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+    }
+
+    .legend-dot.H { background: #fca5a5; }
+    .legend-dot.S { background: #74c69d; }
+    .legend-dot.D { background: #fde047; }
+    .legend-dot.active { background: #1e3a5f; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <h1>Blackjack <span>Agent</span></h1>
+
+  <!-- API Key -->
+  <div class="card">
+    <div class="field">
+      <label>OpenAI API Key</label>
+      <div class="key-input-row">
+        <input type="password" id="api-key" placeholder="Paste your key or upload a .env file" autocomplete="off" />
+        <label class="file-label" for="file-input">&#128194; .env</label>
+        <input type="file" id="file-input" accept=".env,.txt,.csv" />
+      </div>
+      <span class="privacy-note">Stored in memory only — never saved or sent anywhere except OpenAI's API.</span>
+    </div>
+  </div>
+
+  <!-- Agent Settings (stretch: explainability + risk tolerance) -->
+  <div class="card">
+    <div class="section-label">Agent Settings</div>
+    <div class="row">
+      <div class="field">
+        <label>Explainability</label>
+        <div class="mode-toggle">
+          <button id="btn-brief" class="active" onclick="setExplain('brief')">Brief</button>
+          <button id="btn-detailed" onclick="setExplain('detailed')">Detailed</button>
+        </div>
+        <span class="privacy-note">Brief = short reason. Detailed = full strategy breakdown.</span>
+      </div>
+      <div class="field">
+        <label for="risk-tolerance">Risk Tolerance</label>
+        <select id="risk-tolerance">
+          <option value="balanced">Balanced — standard basic strategy</option>
+          <option value="conservative">Conservative — avoid busting above all</option>
+          <option value="aggressive">Aggressive — favor hitting for higher totals</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game table -->
+  <div class="card">
+    <div class="table-area">
+
+      <!-- Dealer -->
+      <div>
+        <div class="hand-label">Dealer</div>
+        <div class="cards" id="dealer-cards"></div>
+        <div class="score-badge" id="dealer-score"></div>
+      </div>
+
+      <hr class="divider" />
+
+      <!-- Player -->
+      <div>
+        <div class="hand-label">You</div>
+        <div class="cards" id="player-cards"></div>
+        <div class="score-badge" id="player-score"></div>
+      </div>
+
+    </div>
+
+    <div class="status-bar" id="status-bar"></div>
+
+    <!-- Action buttons -->
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-deal" onclick="deal()">Deal</button>
+      <button class="btn btn-secondary" id="btn-hit" onclick="playerHit()" disabled>Hit</button>
+      <button class="btn btn-secondary" id="btn-stand" onclick="playerStand()" disabled>Stand</button>
+      <button class="btn btn-ai" id="btn-ai" onclick="askAI()" disabled>Ask AI</button>
+    </div>
+
+    <!-- AI recommendation -->
+    <div>
+      <div class="section-label" style="margin-bottom: 0.5rem;">AI Recommendation</div>
+      <div class="ai-box" id="ai-box">Ask the AI for a recommendation.</div>
+    </div>
+  </div>
+
+  <!-- Stats (stretch: performance analytics) -->
+  <div class="card">
+    <div class="section-label">Performance Analytics</div>
+    <div class="stats-row">
+      <div class="stat-pill">
+        <span class="pill-label">Balance</span>
+        <span class="pill-value green" id="stat-balance">$100</span>
+      </div>
+      <div class="stat-pill">
+        <span class="pill-label">Wins</span>
+        <span class="pill-value" id="stat-wins">0</span>
+      </div>
+      <div class="stat-pill">
+        <span class="pill-label">Losses</span>
+        <span class="pill-value" id="stat-losses">0</span>
+      </div>
+      <div class="stat-pill">
+        <span class="pill-label">Pushes</span>
+        <span class="pill-value" id="stat-pushes">0</span>
+      </div>
+      <div class="stat-pill">
+        <span class="pill-label">AI Win Rate</span>
+        <span class="pill-value blue" id="stat-ai-rate">—</span>
+      </div>
+      <div class="stat-pill">
+        <span class="pill-label">AI Consulted</span>
+        <span class="pill-value" id="stat-ai-total">0</span>
+      </div>
+    </div>
+    <span class="privacy-note">AI Win Rate = wins on hands where you consulted the AI.</span>
+  </div>
+
+  <!-- Strategy chart (stretch: strategy visualization) -->
+  <div class="card">
+    <div class="guide-header" id="chart-toggle" onclick="toggleChart()">
+      <span class="section-label" style="margin-bottom:0">Basic Strategy Chart</span>
+      <span class="toggle-icon">&#9660;</span>
+    </div>
+    <div class="guide-body" id="chart-body">
+      <div class="chart-wrap">
+        <table class="strategy-chart" id="strategy-chart">
+          <thead>
+            <tr>
+              <th>Your Total</th>
+              <th>2</th><th>3</th><th>4</th><th>5</th><th>6</th>
+              <th>7</th><th>8</th><th>9</th><th>10</th><th>A</th>
+            </tr>
+          </thead>
+          <tbody id="chart-body-rows"></tbody>
+        </table>
+      </div>
+      <div class="chart-legend">
+        <span class="legend-item"><span class="legend-dot H"></span> H = Hit</span>
+        <span class="legend-item"><span class="legend-dot S"></span> S = Stand</span>
+        <span class="legend-item"><span class="legend-dot D"></span> D = Double (hit if unavailable)</span>
+        <span class="legend-item"><span class="legend-dot active"></span> = Your current position</span>
+      </div>
+      <span class="privacy-note" style="margin-top:0.25rem">Hard totals only. Simplified for learning purposes.</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ── Basic Strategy Data ───────────────────────────────────────────────────
+  // Rows: player totals 5–17+. Columns: dealer 2,3,4,5,6,7,8,9,10,A
+  const STRATEGY_ROWS = [
+    { label: '5–8',  totals: [5,6,7,8], moves: ['H','H','H','H','H','H','H','H','H','H'] },
+    { label: '9',    totals: [9],        moves: ['H','D','D','D','D','H','H','H','H','H'] },
+    { label: '10',   totals: [10],       moves: ['D','D','D','D','D','D','D','D','H','H'] },
+    { label: '11',   totals: [11],       moves: ['D','D','D','D','D','D','D','D','D','H'] },
+    { label: '12',   totals: [12],       moves: ['H','H','S','S','S','H','H','H','H','H'] },
+    { label: '13',   totals: [13],       moves: ['S','S','S','S','S','H','H','H','H','H'] },
+    { label: '14',   totals: [14],       moves: ['S','S','S','S','S','H','H','H','H','H'] },
+    { label: '15',   totals: [15],       moves: ['S','S','S','S','S','H','H','H','H','H'] },
+    { label: '16',   totals: [16],       moves: ['S','S','S','S','S','H','H','H','H','H'] },
+    { label: '17+',  totals: [17,18,19,20,21], moves: ['S','S','S','S','S','S','S','S','S','S'] },
+  ];
+
+  // dealer rank → column index (0–9)
+  function dealerColIndex(rank) {
+    if (rank === 'A') return 9;
+    const v = cardValue(rank);
+    if (v >= 10) return 8; // 10, J, Q, K
+    return v - 2;          // 2→0, 3→1 … 9→7
+  }
+
+  function buildChart() {
+    const tbody = document.getElementById('chart-body-rows');
+    tbody.innerHTML = '';
+    for (const row of STRATEGY_ROWS) {
+      const tr = document.createElement('tr');
+      tr.dataset.label = row.label;
+      const th = document.createElement('td');
+      th.textContent = row.label;
+      tr.appendChild(th);
+      for (let c = 0; c < 10; c++) {
+        const td = document.createElement('td');
+        td.className = row.moves[c];
+        td.textContent = row.moves[c];
+        td.dataset.col = c;
+        tr.appendChild(td);
+      }
+      tbody.appendChild(tr);
+    }
+  }
+
+  function updateStrategyHighlight() {
+    // clear all highlights
+    document.querySelectorAll('#strategy-chart td.active-cell').forEach(td => td.classList.remove('active-cell'));
+
+    if (gameOver || playerHand.length === 0 || dealerHand.length === 0) return;
+
+    const score = handScore(playerHand);
+    const dealerRank = dealerHand[0].rank;
+    const col = dealerColIndex(dealerRank);
+
+    let targetRow = null;
+    for (const row of STRATEGY_ROWS) {
+      if (row.totals.includes(score) || (score >= 17 && row.label === '17+') || (score <= 8 && row.label === '5–8')) {
+        targetRow = row.label;
+        break;
+      }
+    }
+    if (!targetRow) return;
+
+    const tr = document.querySelector(`#chart-body-rows tr[data-label="${targetRow}"]`);
+    if (!tr) return;
+    const tds = tr.querySelectorAll('td');
+    // tds[0] is the label cell, tds[col+1] is the move cell
+    if (tds[col + 1]) tds[col + 1].classList.add('active-cell');
+  }
+
+  function toggleChart() {
+    const header = document.getElementById('chart-toggle');
+    const body = document.getElementById('chart-body');
+    header.classList.toggle('open');
+    body.classList.toggle('open');
+  }
+
+  // ── Deck ──────────────────────────────────────────────────────────────────
+  const SUITS = ['♠', '♥', '♦', '♣'];
+  const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+
+  function buildDeck() {
+    const deck = [];
+    for (const suit of SUITS) for (const rank of RANKS) deck.push({ rank, suit });
+    return shuffle(deck);
+  }
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function cardValue(rank) {
+    if (['J','Q','K'].includes(rank)) return 10;
+    if (rank === 'A') return 11;
+    return parseInt(rank);
+  }
+
+  function handScore(hand) {
+    let total = 0, aces = 0;
+    for (const card of hand) {
+      total += cardValue(card.rank);
+      if (card.rank === 'A') aces++;
+    }
+    while (total > 21 && aces > 0) { total -= 10; aces--; }
+    return total;
+  }
+
+  // ── State ─────────────────────────────────────────────────────────────────
+  let deck = [], playerHand = [], dealerHand = [], gameOver = false;
+  let balance = 100, wins = 0, losses = 0, pushes = 0;
+  let aiHandsTotal = 0, aiHandsWon = 0;
+  let aiConsultedThisHand = false;
+  let explainMode = 'brief';
+
+  // ── Settings ──────────────────────────────────────────────────────────────
+  function setExplain(mode) {
+    explainMode = mode;
+    document.getElementById('btn-brief').classList.toggle('active', mode === 'brief');
+    document.getElementById('btn-detailed').classList.toggle('active', mode === 'detailed');
+  }
+
+  // ── .env upload ───────────────────────────────────────────────────────────
+  document.getElementById('file-input').addEventListener('change', function () {
+    const file = this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const text = e.target.result;
+      const match = text.match(/(?:OPENAI_API_KEY|API_KEY)\s*=\s*["']?([^\s"'\r\n]+)["']?/i)
+        || text.match(/["']?(sk-[A-Za-z0-9\-_]+)["']?/);
+      if (match) {
+        document.getElementById('api-key').value = match[1];
+      } else {
+        const cells = text.split(/[\r\n,]+/).map(c => c.trim()).filter(Boolean);
+        const keyCell = cells.find(c => c.startsWith('sk-') || c.length > 30);
+        if (keyCell) document.getElementById('api-key').value = keyCell;
+        else showStatus('Could not find an API key in the uploaded file.', 'lose');
+      }
+    };
+    reader.readAsText(file);
+    this.value = '';
+  });
+
+  // ── Rendering ─────────────────────────────────────────────────────────────
+  function isRed(suit) { return suit === '♥' || suit === '♦'; }
+
+  function renderCard(card, faceDown = false) {
+    const div = document.createElement('div');
+    div.className = 'playing-card' + (faceDown ? ' face-down' : (isRed(card.suit) ? ' red' : ' black'));
+    if (!faceDown) {
+      div.innerHTML = `<span>${card.rank}</span><span class="suit">${card.suit}</span>`;
+    }
+    return div;
+  }
+
+  function renderHands(revealDealer = false) {
+    const pc = document.getElementById('player-cards');
+    const dc = document.getElementById('dealer-cards');
+    pc.innerHTML = '';
+    dc.innerHTML = '';
+
+    for (const card of playerHand) pc.appendChild(renderCard(card));
+    for (let i = 0; i < dealerHand.length; i++) {
+      dc.appendChild(renderCard(dealerHand[i], i === 1 && !revealDealer));
+    }
+
+    document.getElementById('player-score').textContent = `Score: ${handScore(playerHand)}`;
+    if (revealDealer) {
+      document.getElementById('dealer-score').textContent = `Score: ${handScore(dealerHand)}`;
+    } else {
+      document.getElementById('dealer-score').textContent = `Showing: ${cardValue(dealerHand[0].rank)}`;
+    }
+
+    updateStrategyHighlight();
+  }
+
+  function showStatus(msg, type) {
+    const el = document.getElementById('status-bar');
+    el.textContent = msg;
+    el.className = `status-bar visible ${type}`;
+  }
+
+  function hideStatus() {
+    document.getElementById('status-bar').className = 'status-bar';
+  }
+
+  function updateStats() {
+    const bal = document.getElementById('stat-balance');
+    bal.textContent = `$${balance}`;
+    bal.className = 'pill-value' + (balance >= 100 ? ' green' : ' red');
+    document.getElementById('stat-wins').textContent = wins;
+    document.getElementById('stat-losses').textContent = losses;
+    document.getElementById('stat-pushes').textContent = pushes;
+
+    const rateEl = document.getElementById('stat-ai-rate');
+    document.getElementById('stat-ai-total').textContent = aiHandsTotal;
+    if (aiHandsTotal === 0) {
+      rateEl.textContent = '—';
+      rateEl.className = 'pill-value blue';
+    } else {
+      const pct = Math.round((aiHandsWon / aiHandsTotal) * 100);
+      rateEl.textContent = `${aiHandsWon}/${aiHandsTotal} (${pct}%)`;
+      rateEl.className = 'pill-value ' + (pct >= 50 ? 'green' : 'red');
+    }
+  }
+
+  function setButtons(playing) {
+    document.getElementById('btn-deal').disabled = playing;
+    document.getElementById('btn-hit').disabled = !playing;
+    document.getElementById('btn-stand').disabled = !playing;
+    document.getElementById('btn-ai').disabled = !playing;
+  }
+
+  // ── Game logic ────────────────────────────────────────────────────────────
+  function deal() {
+    deck = buildDeck();
+    playerHand = [deck.pop(), deck.pop()];
+    dealerHand = [deck.pop(), deck.pop()];
+    gameOver = false;
+    aiConsultedThisHand = false;
+
+    hideStatus();
+    const aiBox = document.getElementById('ai-box');
+    aiBox.className = 'ai-box';
+    aiBox.textContent = 'Ask the AI for a recommendation.';
+
+    renderHands(false);
+    setButtons(true);
+
+    if (handScore(playerHand) === 21) endGame('blackjack');
+  }
+
+  function playerHit() {
+    if (gameOver) return;
+    playerHand.push(deck.pop());
+    renderHands(false);
+    if (handScore(playerHand) > 21) endGame('bust');
+  }
+
+  function playerStand() {
+    if (gameOver) return;
+    while (handScore(dealerHand) < 17) dealerHand.push(deck.pop());
+    endGame('stand');
+  }
+
+  function endGame(reason) {
+    gameOver = true;
+    setButtons(false);
+    renderHands(true);
+
+    const ps = handScore(playerHand);
+    const ds = handScore(dealerHand);
+    let result, msg;
+
+    if (reason === 'blackjack') {
+      result = 'win'; msg = 'Blackjack! You win.';
+    } else if (reason === 'bust') {
+      result = 'lose'; msg = `Bust! You scored ${ps}. Dealer wins.`;
+    } else {
+      if (ds > 21)       { result = 'win';  msg = `Dealer busts (${ds}). You win!`; }
+      else if (ps > ds)  { result = 'win';  msg = `You win! ${ps} vs ${ds}.`; }
+      else if (ps < ds)  { result = 'lose'; msg = `Dealer wins. ${ds} vs ${ps}.`; }
+      else               { result = 'push'; msg = `Push — both scored ${ps}.`; }
+    }
+
+    showStatus(msg, result === 'push' ? 'push' : result);
+
+    if (result === 'win')  { balance += 10; wins++; }
+    else if (result === 'lose') { balance -= 10; losses++; }
+    else { pushes++; }
+
+    // performance analytics: record AI-consulted hand outcome
+    if (aiConsultedThisHand) {
+      aiHandsTotal++;
+      if (result === 'win') aiHandsWon++;
+    }
+
+    updateStats();
+    console.log(`[Game] Result: ${result} | Player: ${ps} | Dealer: ${ds} | AI consulted: ${aiConsultedThisHand}`);
+  }
+
+  // ── AI Agent ──────────────────────────────────────────────────────────────
+  async function askAI() {
+    const apiKey = document.getElementById('api-key').value.trim();
+    if (!apiKey) { showStatus('Please enter your OpenAI API key first.', 'lose'); return; }
+    if (gameOver) return;
+
+    aiConsultedThisHand = true;
+
+    const aiBox = document.getElementById('ai-box');
+    aiBox.className = 'ai-box visible';
+    aiBox.innerHTML = '<span class="spinner"></span>Thinking...';
+
+    const ps = handScore(playerHand);
+    const dealerVisible = dealerHand[0];
+    const playerCards = playerHand.map(c => `${c.rank}${c.suit}`).join(', ');
+    const risk = document.getElementById('risk-tolerance').value;
+
+    const riskInstruction = {
+      conservative: 'The player prefers a conservative style — avoid busting above all else, stand when uncertain.',
+      balanced:     'Use standard basic strategy.',
+      aggressive:   'The player prefers an aggressive style — favor hitting to chase higher totals, accept bust risk.',
+    }[risk];
+
+    const reasoningInstruction = explainMode === 'detailed'
+      ? 'Provide a thorough explanation: state the relevant basic strategy principle, why it applies here, and what the risk is.'
+      : 'Provide a brief one-sentence reason.';
+
+    const prompt = `You are a Blackjack strategy advisor. ${riskInstruction}
+
+Player's hand: ${playerCards} (score: ${ps})
+Dealer's visible card: ${dealerVisible.rank}${dealerVisible.suit}
+
+Should the player hit or stand? ${reasoningInstruction}
+
+Respond ONLY with valid JSON in this exact format — no extra text, no markdown:
+{"action": "hit", "reasoning": "..."}
+or
+{"action": "stand", "reasoning": "..."}`;
+
+    const systemMsg = 'You are a Blackjack strategy advisor. Always respond with valid JSON only. Never include markdown or explanation outside the JSON object.';
+
+    console.log('[AI] Prompt sent:', prompt);
+
+    try {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: systemMsg },
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.2
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error?.message || `OpenAI error (${res.status})`);
+      }
+
+      const data = await res.json();
+      const raw = data.choices[0].message.content.trim();
+      console.log('[AI] Raw response:', raw);
+
+      let parsed;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        throw new Error('AI returned invalid JSON. Raw: ' + raw);
+      }
+
+      const action = parsed.action?.toLowerCase();
+      const reasoning = parsed.reasoning || '';
+
+      if (action !== 'hit' && action !== 'stand') {
+        throw new Error(`Unexpected action value: "${action}"`);
+      }
+
+      aiBox.innerHTML = `<span class="action-tag ${action}">${action.toUpperCase()}</span>${reasoning}`;
+
+    } catch (err) {
+      console.error('[AI] Error:', err);
+      aiBox.innerHTML = `<span style="color:#dc2626">${err.message}</span>`;
+    }
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  buildChart();
+  updateStats();
+</script>
+</body>
+</html>
